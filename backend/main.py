@@ -1,6 +1,6 @@
-﻿
+
 from fastapi import FastAPI
-from api.api_router import main_api_router
+from gateway.api.api_router import main_api_router
 
 app = FastAPI(
     title="Supply Chain Risk AI",

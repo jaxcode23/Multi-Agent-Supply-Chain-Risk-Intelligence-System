@@ -1,7 +1,7 @@
 from datetime import datetime
-from risk_scoring import calculate_risk_score
-from analysis_agent.db.planner import get_supplier_id_by_name, plan_alternatives
-from analysis_agent.db.db import news_collection
+from .risk_scoring import calculate_risk_score
+from .planner import get_supplier_id_by_name, plan_alternatives
+from core.db.mongo import news_collection
 
 KNOWN_SUPPLIERS = [
     "Tata",

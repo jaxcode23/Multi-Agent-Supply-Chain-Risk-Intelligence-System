@@ -1,5 +1,5 @@
 from typing import Optional
-from db import get_supplier_by_name, find_alternative_suppliers
+from core.db.neo4j import get_supplier_by_name, find_alternative_suppliers
 
 def get_supplier_id_by_name(name: str) -> Optional[int]:
     supplier = get_supplier_by_name(name)
