@@ -33,7 +33,7 @@ The system utilizes a specialized pipeline designed for maximum resilience:
 3. **AI Backend (Python):** FastAPI orchestrates LLM-powered Analysis Agents that use Neo4j to find alternative suppliers when risks are detected.
 4. **Frontend (Next.js):** A premium TypeScript dashboard provides real-time visibility and one-click mitigation.
 
-👉 **[Read the Full System Architecture Walkthrough](walkthrough.md)**
+
 
 ---
 
