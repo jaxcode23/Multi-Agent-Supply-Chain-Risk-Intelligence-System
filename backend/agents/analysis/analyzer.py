@@ -1,7 +1,21 @@
-# analysis_agent/analyzer.py
+from datetime import datetime
+from .risk_scoring import calculate_risk_score
+from .planner import get_supplier_id_by_name, plan_alternatives
+from core.db.mongo import news_collection
 
-from risk_scoring import calculate_risk_score
-from planner import get_supplier_id_by_name, plan_alternatives
+KNOWN_SUPPLIERS = [
+    "Tata",
+    "Reliance",
+    "Adani"
+]
+
+def detect_supplier(text: str):
+    text_lower = text.lower()
+    for supplier in KNOWN_SUPPLIERS:
+        if supplier.lower() in text_lower:
+            return supplier
+    return None
+
 
 def analyze_news(article: dict):
     """

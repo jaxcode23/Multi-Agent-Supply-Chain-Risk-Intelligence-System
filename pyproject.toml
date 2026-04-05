@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hackthon"
+version = "0.1.0"
+description = "Multi-agent intelligence system"
+
+[tool.setuptools]
+packages = [
+    "intelligence_agent",
+    "analysis_agent",
+    "backend"
+]

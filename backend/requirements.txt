@@ -45,6 +45,8 @@ tenacity
 # =========================
 numpy
 scikit-learn
+pandas
+requests
 
 # =========================
 # Logging & Utilities
