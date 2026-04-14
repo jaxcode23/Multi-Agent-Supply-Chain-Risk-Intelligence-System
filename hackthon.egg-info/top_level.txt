@@ -1,3 +1,0 @@
-analysis_agent
-backend
-intelligence_agent

@@ -1,0 +1,14 @@
+[services.ingestion]
+path = "./ingestion"
+command = "sbt"
+args = ["run"]
+
+[services.intelligence]
+path = "./backend"
+command = "python"
+args = ["-m", "uvicorn", "main:app", "--reload", "--port", "8000"]
+
+[services.interface]
+path = "./frontend"
+command = "npm"
+args = ["run", "dev"]
