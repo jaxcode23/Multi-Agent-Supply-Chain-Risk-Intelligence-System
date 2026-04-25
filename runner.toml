@@ -1,4 +1,9 @@
-[services.ingestion]
+[services.go-gateway]
+path = "./scrapers"
+command = "go"
+args = ["run", "cmd/api/main.go"]
+
+[services.scala-gateway]
 path = "./ingestion"
 command = "sbt"
 args = ["run"]
