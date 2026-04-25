@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package scrapper;
+
+option go_package = "github.com/AshikaM07/scrapers/pkg/pb";
+
+service ScrapperService {
+  // Client-side streaming of scraped data to the Scala backend
+  rpc StreamScrapeData(stream ScrapePayload) returns (ScrapeResponse);
+}
+
+message ScrapePayload {
+  string source_url = 1;
+  string domain_entity = 2; // e.g., "Supplier", "News"
+  string raw_content = 3;
+  int64 timestamp = 4;
+  map<string, string> metadata = 5;
+}
+
+message ScrapeResponse {
+  bool success = 1;
+  string message = 2;
+  int32 processed_count = 3;
+}

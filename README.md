@@ -55,7 +55,7 @@ Ensure you have Docker and Docker Compose installed:
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/AshikaM07/Multi-Agent-Supply-Chain-Risk-Intelligence-System
+git clone https://github.com/jaxcode23/Multi-Agent-Supply-Chain-Risk-Intelligence-System
 cd Multi-Agent-Supply-Chain-Risk-Intelligence-System
 
 # 2. Set up environment variables
@@ -79,5 +79,5 @@ Phase 1 focus ensures a resilient foundation for real-time risk intelligence:
 
 ## 📄 License & Author
 
-**Author**: Built by @pd241008 @jaxcode23  
+**Author**: Built by @jaxcode23 @pd241008
 **License**: MIT 

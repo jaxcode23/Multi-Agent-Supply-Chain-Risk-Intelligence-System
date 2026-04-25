@@ -47,6 +47,8 @@ numpy
 scikit-learn
 pandas
 requests
+chromadb
+openai
 
 # =========================
 # Logging & Utilities
