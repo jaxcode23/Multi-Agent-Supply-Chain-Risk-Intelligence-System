@@ -1,19 +1,35 @@
 import zio._
-import zio.http._
-import service.ScrapperServiceHandler
+import zio.http.Client
+import zio.logging.backend.SLF4J
+
+import scalapb.zio_grpc.{ServerLayer, ServiceList}
+
+import service.IngestionService
+import db.ChromaDBClient
+import config.AppConfig
 
 object Main extends ZIOAppDefault {
 
-  override def run: ZIO[Any, Any, Any] = {
-    for {
-      _ <- ZIO.logInfo("🚀 Starting the Scala Ingestion Gateway...")
-      
-      // Initialize the gRPC Service Layer
-      _ <- ZIO.logInfo("🌍 Scala gRPC Server binding to port 50051...")
-      
-      // In a real ZIO-gRPC setup, we would use Server.start or similar
-      // For now, we simulate the long-running server process
-      _ <- ZIO.never
-    } yield ()
+  override val bootstrap: ZLayer[Any, Nothing, Unit] =
+    Runtime.removeDefaultLoggers >>> SLF4J.slf4j
+
+  override def run: ZIO[Any, Throwable, Nothing] = {
+    val cfg = AppConfig.load()
+
+    val serverProgram: ZIO[IngestionService, Throwable, Nothing] =
+      for {
+        _ <- ZIO.logInfo(s"🚀 Scala gRPC Ingestion Hub starting on port ${cfg.grpcPort}")
+        _ <- ZIO.logInfo(s"ChromaDB → ${cfg.chromaHost} / ${cfg.chromaCollection}")
+        server <- ServerLayer
+                    .fromServiceList(cfg.grpcPort)(ServiceList.add[IngestionService])
+                    .launch
+      } yield server
+
+    serverProgram.provide(
+      Client.default,
+      ZLayer.succeed(cfg),
+      ChromaDBClient.auto,
+      IngestionService.layer,
+    )
   }
 }

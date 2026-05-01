@@ -7,12 +7,12 @@ from pymongo.errors import DuplicateKeyError
 from pydantic import ValidationError
 
 # --- Internal Imports ---
-from intelligence_agent.infrastructure.mongo.base import get_mongo_client
-from intelligence_agent.intelligence_logic.risk_scoring import calculate_intel_risk
-from intelligence_agent.intelligence_logic.planner import should_escalate, assign_priority
+from intelligence_agent.infrastructure.mongo.mongo_client import get_mongo_client
+from intelligence_agent.intelligence_logic.risk_scorer import calculate_intel_risk
+from intelligence_agent.intelligence_logic.escalation_planner import should_escalate, assign_priority
 
 # NEW: Import the Pydantic Models
-from intelligence_agent.db.model.models import IntelDocument, IntelAnalysis
+from intelligence_agent.db.model.intel_document import IntelDocument, IntelAnalysis
 
 load_dotenv()
 logger = logging.getLogger(__name__)

@@ -1,5 +1,5 @@
 from datetime import datetime
-from intelligence_agent.infrastructure.mongo.base import get_mongo_client
+from intelligence_agent.infrastructure.mongo.mongo_client import get_mongo_client
 
 def test_connection():
     try:

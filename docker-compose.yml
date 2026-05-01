@@ -1,0 +1,134 @@
+version: "3.9"
+
+# =============================================================================
+#  Multi-Agent Supply Chain Risk Intelligence System
+#  Local Development Database Stack
+#
+#  Services:
+#    - chromadb   → Vector store for RAG (port 8000)
+#    - neo4j      → Supplier knowledge graph (ports 7474, 7687)
+#    - mongodb    → Raw document / intel store (port 27017)
+#
+#  Usage:
+#    docker compose up -d          # Start all services in background
+#    docker compose down           # Stop all services (data persists)
+#    docker compose down -v        # Stop all + wipe volumes (clean slate)
+#    docker compose logs -f <svc>  # Tail logs for a specific service
+# =============================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # ChromaDB — Vector Store for RAG Pipeline
+  # ---------------------------------------------------------------------------
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: supply_chain_chroma
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      # Disable token authentication for local development
+      ANONYMIZED_TELEMETRY: "false"
+      ALLOW_RESET: "true"
+      IS_PERSISTENT: "true"
+      PERSIST_DIRECTORY: /chroma/chroma
+    volumes:
+      - chroma_data:/chroma/chroma
+    networks:
+      - supply-chain-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ---------------------------------------------------------------------------
+  # Neo4j — Supplier Knowledge Graph
+  # ---------------------------------------------------------------------------
+  neo4j:
+    image: neo4j:5.19-community
+    container_name: supply_chain_neo4j
+    restart: unless-stopped
+    ports:
+      - "7474:7474"   # HTTP Browser UI
+      - "7687:7687"   # Bolt driver protocol
+    environment:
+      NEO4J_AUTH: neo4j/neo4j1234
+      # APOC plugin — enables advanced graph procedures used by the agent
+      NEO4J_PLUGINS: '["apoc"]'
+      NEO4J_dbms_security_procedures_unrestricted: "apoc.*"
+      NEO4J_dbms_security_procedures_allowlist: "apoc.*"
+      # Memory tuning for local dev (avoids OOM on modest machines)
+      NEO4J_server_memory_heap_initial__size: "256m"
+      NEO4J_server_memory_heap_max__size: "512m"
+      NEO4J_server_memory_pagecache_size: "256m"
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+      - neo4j_plugins:/plugins
+    networks:
+      - supply-chain-net
+    healthcheck:
+      test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "neo4j1234", "RETURN 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  # ---------------------------------------------------------------------------
+  # MongoDB — Raw Intel Document Store
+  #
+  # NOTE: This is the LOCAL fallback. The production pipeline uses MongoDB Atlas
+  #       (MONGO_URI in .env). Comment this service out if using Atlas directly.
+  # ---------------------------------------------------------------------------
+  mongodb:
+    image: mongo:7.0
+    container_name: supply_chain_mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: supplychain1234
+      MONGO_INITDB_DATABASE: intelligence_db
+    volumes:
+      - mongo_data:/data/db
+      - mongo_config:/data/configdb
+      # Optional: place .js seed scripts in ./scripts/mongo-init/ to auto-run on first start
+      # - ./scripts/mongo-init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - supply-chain-net
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+# =============================================================================
+# Volumes — Persistent storage, survives container restarts
+# =============================================================================
+volumes:
+  chroma_data:
+    driver: local
+  neo4j_data:
+    driver: local
+  neo4j_logs:
+    driver: local
+  neo4j_plugins:
+    driver: local
+  mongo_data:
+    driver: local
+  mongo_config:
+    driver: local
+
+# =============================================================================
+# Networks — Shared bridge so all services can resolve each other by hostname
+#   e.g. chromadb → host="chroma", neo4j → host="neo4j", mongo → host="mongodb"
+# =============================================================================
+networks:
+  supply-chain-net:
+    driver: bridge
+    name: supply-chain-net

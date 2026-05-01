@@ -1,11 +1,42 @@
-﻿<configuration>
+<configuration>
+
+    <!--
+        JSON structured logging for the Scala Ingestion Hub.
+        logstash-logback-encoder produces one JSON line per log event so the
+        output is parseable by any log aggregation pipeline (Loki, Datadog, etc.)
+        and matches the JSON format used by the Go service (log/slog JSON handler).
+
+        Format example:
+        {"@timestamp":"2024-01-15T09:31:00.123Z","level":"INFO","logger":"service.IngestionService","message":"..."}
+    -->
+
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder>
-            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <!-- Drop the default @version field (noise) -->
+            <fieldNames>
+                <version>[ignore]</version>
+            </fieldNames>
         </encoder>
     </appender>
+
+    <!-- Suppress Netty's verbose internal channel lifecycle noise -->
+    <logger name="io.grpc.netty"             level="WARN" />
+    <logger name="io.netty"                  level="WARN" />
+
+    <!-- Suppress ZIO's internal fibre scheduler noise -->
+    <logger name="zio.internal"              level="WARN" />
+
+    <!-- Suppress Akka's boot-time startup logs (retained for DataCleaner) -->
+    <logger name="akka"                      level="WARN" />
+
+    <!-- Application loggers — keep at INFO; bump to DEBUG for local dev -->
+    <logger name="service"   level="INFO" />
+    <logger name="db"        level="INFO" />
+    <logger name="streams"   level="INFO" />
+    <logger name="transforms" level="INFO" />
 
     <root level="INFO">
         <appender-ref ref="STDOUT" />
     </root>
+
 </configuration>

@@ -11,8 +11,8 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 # ------------------------------------
 
-from intelligence_agent.infrastructure.mongo.base import get_mongo_client
-from intelligence_agent.db.model.models import IntelDocument, IntelAnalysis
+from intelligence_agent.infrastructure.mongo.mongo_client import get_mongo_client
+from intelligence_agent.db.model.intel_document import IntelDocument, IntelAnalysis
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("SEEDER")
