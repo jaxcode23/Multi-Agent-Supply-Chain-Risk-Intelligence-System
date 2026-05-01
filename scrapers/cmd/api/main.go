@@ -2,63 +2,142 @@ package main
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
+	pb "github.com/jaxcode23/scrapers/pkg/pb"
+	"github.com/jaxcode23/scrapers/internal/api"
 	"github.com/jaxcode23/scrapers/internal/service"
 	"github.com/jaxcode23/scrapers/internal/utils"
 	"github.com/jaxcode23/scrapers/pkg/workerpool"
 )
 
+func envOrDefault(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
+}
+
+func envInt(key string, fallback int) int {
+	if v := os.Getenv(key); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			return n
+		}
+	}
+	return fallback
+}
+
+func envDuration(key string, fallback time.Duration) time.Duration {
+	if v := os.Getenv(key); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			return time.Duration(n) * time.Second
+		}
+	}
+	return fallback
+}
+
+var (
+	scalaHubAddr      = envOrDefault("SCALA_HUB_ADDR", "localhost:9090")
+	httpAddr          = envOrDefault("HTTP_ADDR", ":8080")
+	workerConcurrency = envInt("WORKER_CONCURRENCY", 5)
+	payloadBufferSize = envInt("PAYLOAD_BUFFER_SIZE", 200)
+	shutdownGrace     = envDuration("SHUTDOWN_GRACE_SECONDS", 15*time.Second)
+)
+
 func main() {
-	log.Println("🚀 Initializing Go Scraping Gateway...")
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	slog.SetDefault(logger)
 
-	// 1. Setup Context and Signal Handling
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	logger.Info("🚀 Supply Chain Scraper Gateway starting",
+		"scala_hub", scalaHubAddr,
+		"http_addr", httpAddr,
+		"worker_concurrency", workerConcurrency,
+	)
 
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	rootCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 
-	// 2. Initialize Utilities
 	uaRotator := utils.NewUserAgentRotator()
-	limiter := utils.NewDomainLimiter()
+	domainLimiter := utils.NewDomainLimiter()
+	engine := service.NewCollyEngine(uaRotator, domainLimiter)
 
-	// 3. Initialize Worker Pool (Concurrency: 10)
-	pool := workerpool.NewPool(ctx, 10)
+	pool := workerpool.NewPool(rootCtx, workerConcurrency)
 	pool.Start()
-	defer pool.Stop()
 
-	// 4. Initialize Scraper Engine (Colly)
-	engine := service.NewCollyEngine(uaRotator, limiter)
-
-	// 5. Initialize Scraper Service
 	scraperSvc := service.NewScraperService(engine, pool)
 
-	// 6. Initialize gRPC Stream Service (Scala Backend on port 50051)
-	// streamSvc := service.NewStreamService("localhost:50051")
-	// if err := streamSvc.Connect(ctx); err != nil {
-	// 	log.Printf("⚠️ Starting without gRPC stream: %v", err)
-	// }
-	// defer streamSvc.Close()
+	grpcClient := service.NewGRPCClient(scalaHubAddr, logger)
+	if err := grpcClient.Connect(rootCtx); err != nil {
+		logger.Error("failed to connect to Scala hub — aborting", "addr", scalaHubAddr, "err", err)
+		os.Exit(1)
+	}
+	defer grpcClient.Close()
 
-	// 7. Start result listener
+	payloads := make(chan *pb.ScrapePayload, payloadBufferSize)
+
+	streamDone := make(chan struct{})
 	go func() {
-		for res := range scraperSvc.Results {
-			if res.Error != nil {
-				log.Printf("❌ Task %s failed: %v", res.TaskID, res.Error)
-			} else {
-				log.Printf("✅ Task %s success: %d bytes from %s", res.TaskID, len(res.Content), res.SourceURL)
+		defer close(streamDone)
+		if err := grpcClient.StartStream(rootCtx, payloads); err != nil {
+			logger.Error("gRPC stream terminated with error", "err", err)
+		}
+	}()
+
+	// Fan-out: ScrapeResult → *pb.ScrapePayload. Closing payloads triggers CloseAndRecv.
+	go func() {
+		defer close(payloads)
+		for {
+			select {
+			case <-rootCtx.Done():
+				return
+			case result, ok := <-scraperSvc.Results:
+				if !ok {
+					return
+				}
+				if result.Status != "SUCCESS" {
+					logger.Warn("skipping failed scrape", "task_id", result.TaskID, "err", result.Error)
+					continue
+				}
+				payload := &pb.ScrapePayload{
+					SourceUrl:    result.SourceURL,
+					DomainEntity: result.Metadata["domain_entity"],
+					RawContent:   result.Content,
+					Timestamp:    result.FinishedAt.Unix(),
+					Metadata:     result.Metadata,
+				}
+				select {
+				case payloads <- payload:
+				case <-rootCtx.Done():
+					return
+				}
 			}
 		}
 	}()
 
-	log.Println("✅ Go Gateway is ready and listening for tasks.")
+	// HTTP health + metrics server (non-blocking)
+	httpServer := api.NewServer(httpAddr, grpcClient, logger)
+	go func() {
+		if err := httpServer.Start(); err != nil {
+			logger.Error("HTTP server error", "err", err)
+		}
+	}()
 
-	// Keep alive until signal
-	<-sigChan
-	log.Println("👋 Shutting down Go Gateway...")
+	logger.Info("✅ Go Gateway ready", "http", httpAddr, "grpc_target", scalaHubAddr)
+	<-rootCtx.Done()
+	logger.Info("shutdown signal received", "grace_seconds", shutdownGrace.Seconds())
+
+	pool.Stop()
+	httpServer.Shutdown(context.Background())
+
+	select {
+	case <-streamDone:
+		logger.Info("✅ Graceful shutdown complete")
+	case <-time.After(shutdownGrace):
+		logger.Warn("⚠️  Grace period exceeded — forcing exit")
+	}
 }

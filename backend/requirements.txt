@@ -51,6 +51,13 @@ chromadb
 openai
 
 # =========================
+# LangChain / LangGraph
+# =========================
+langgraph
+langchain-core
+langchain-openai
+
+# =========================
 # Logging & Utilities
 # =========================
 loguru

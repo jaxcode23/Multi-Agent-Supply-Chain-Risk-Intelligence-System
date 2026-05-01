@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Optional, List, Dict, Any
 from .risk_scoring import calculate_risk_score
 from .planner import get_supplier_id_by_name, plan_alternatives
-from core.db.mongo import news_collection
+from core.db.mongo_client import news_collection
 
 # ChromaDB Initialization with error handling
 try:

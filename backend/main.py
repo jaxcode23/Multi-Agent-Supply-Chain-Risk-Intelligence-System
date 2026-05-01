@@ -1,14 +1,14 @@
-
 from fastapi import FastAPI
 from gateway.api.api_router import main_api_router
 
 app = FastAPI(
     title="Supply Chain Risk AI",
-    version="1.0.0"
+    description="Multi-Agent Supply Chain Risk Intelligence System",
+    version="1.0.0",
 )
 
-# Base API entry
 app.include_router(main_api_router)
+
 
 @app.get("/")
 def root():
