@@ -3,9 +3,9 @@
 
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --background: #0f1321;
+  --foreground: #dfe1f6;
 
   --color-outline-variant: #3d4a3e;
   --color-on-tertiary-container: #425267;
@@ -112,13 +112,13 @@
   background: rgba(15, 19, 33, 0.8);
 }
 
-.font-body-md { font-family: var(--font-chivo); font-size: 14px; line-height: 1.5; font-weight: 400; }
-.font-body-lg { font-family: var(--font-chivo); font-size: 16px; line-height: 1.6; font-weight: 400; }
-.font-headline-sm { font-family: var(--font-chivo); font-size: 20px; line-height: 1.2; font-weight: 700; }
-.font-headline-md { font-family: var(--font-chivo); font-size: 32px; line-height: 1.2; font-weight: 700; letter-spacing: -0.02em; }
-.font-headline-lg { font-family: var(--font-chivo); font-size: 48px; line-height: 1.1; font-weight: 800; letter-spacing: -0.04em; }
-.font-label-sm { font-family: var(--font-jetbrains); font-size: 12px; line-height: 1.2; font-weight: 500; letter-spacing: 0.05em; }
-.font-code-md { font-family: var(--font-jetbrains); font-size: 14px; line-height: 1.6; font-weight: 400; }
+@utility font-body-md { font-family: var(--font-chivo); font-size: 14px; line-height: 1.5; font-weight: 400; }
+@utility font-body-lg { font-family: var(--font-chivo); font-size: 16px; line-height: 1.6; font-weight: 400; }
+@utility font-headline-sm { font-family: var(--font-chivo); font-size: 20px; line-height: 1.2; font-weight: 700; }
+@utility font-headline-md { font-family: var(--font-chivo); font-size: 32px; line-height: 1.2; font-weight: 700; letter-spacing: -0.02em; }
+@utility font-headline-lg { font-family: var(--font-chivo); font-size: 48px; line-height: 1.1; font-weight: 800; letter-spacing: -0.04em; }
+@utility font-label-sm { font-family: var(--font-jetbrains); font-size: 12px; line-height: 1.2; font-weight: 500; letter-spacing: 0.05em; }
+@utility font-code-md { font-family: var(--font-jetbrains); font-size: 14px; line-height: 1.6; font-weight: 400; }
 
 body {
   background: var(--background);
