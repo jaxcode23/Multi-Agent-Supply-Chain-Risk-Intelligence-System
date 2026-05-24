@@ -98,3 +98,10 @@ cargo run
 
 **Author**: Built by [@jaxcode23](https://github.com/jaxcode23) and [@pd241008](https://github.com/pd241008)  
 **License**: MIT 
+
+
+## 🎯 Project Roadmap
+- [x] **Phase 1**: Initial Scaffolding (frontend, backend, runner, ingestion).
+- [x] **Phase 2**: Core Components & Scrapers Integration.
+- [ ] **Phase 3**: Tech Debt & Refactoring (Resolve 2,100+ TODOs/FIXMEs).
+- [ ] **Phase 4**: Full-Stack Polish & Production Deployment.
