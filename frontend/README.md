@@ -13,14 +13,16 @@ frontend/
 ├── package.json                    # Next.js app config
 ├── next.config.ts                  # Next.js config
 ├── tsconfig.json                   # TypeScript config
+├── public/
+│   └── images/                     # Static UI assets
 └── src/
-    ├── app/
-    │   ├── layout.tsx              # Root layout
-    │   ├── page.tsx                # Landing page (exists)
-    │   └── globals.css             # Base styles
-    └── components/
-        └── ui/
-            └── index.ts            # UI component barrel export
+    └── app/
+        ├── layout.tsx              # Root layout
+        ├── globals.css             # Base styles
+        ├── page.tsx                # Landing page (Home)
+        ├── architecture/           # Infrastructure & systems overview
+        ├── devdocs/                # Developer API & console logs
+        └── ecosystem/              # Agent topology & supplier graph
 ```
 
 ---
@@ -39,11 +41,11 @@ npm run dev       # starts on http://localhost:3000
 
 | File / Feature | Status |
 |---|---|
-| `src/app/page.tsx` | ✅ Landing page exists |
-| Risk event live feed page | ❌ Not built |
-| Supplier graph visualisation | ❌ Not built |
-| WebSocket connection to backend | ❌ Not built |
-| Backend API integration | ❌ Not built |
-| `src/components/ui/` | ❓ Barrel export exists — component implementations unknown |
+| **Landing Page** (`src/app/page.tsx`) | ✅ Implemented |
+| **Architecture Page** (`src/app/architecture/page.tsx`) | ✅ Implemented |
+| **Ecosystem Page** (`src/app/ecosystem/page.tsx`) | ✅ Implemented (Includes Supplier Graph & Live Feed) |
+| **DevDocs Page** (`src/app/devdocs/page.tsx`) | ✅ Implemented (Includes Mock API Console) |
+| **Backend API integration** | ❌ Not built (Currently simulated client-side) |
+| **WebSocket connection** | ❌ Not built (Currently using mock intervals) |
 
-> The frontend is ~15% complete. It is the lowest-priority layer until the backend API routes are stable.
+> The frontend UI and visual components are mostly complete (~80%), featuring robust client-side simulations. Real-time data integration remains pending the backend completion.
