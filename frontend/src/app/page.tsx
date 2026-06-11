@@ -847,8 +847,8 @@ export default function LandingPage() {
                   <span className="text-[#c792ea]">package</span> main
                   {"\n\n"}
                   <span className="text-[#c792ea]">import</span> ({"\n"}
-                  {"    "}<span className="text-[#c3e88d]">"context"</span>{"\n"}
-                  {"    "}<span className="text-[#c3e88d]">"github.com/risk_intel/sdk-go"</span>{"\n"}
+                  {"    "}<span className="text-[#c3e88d]">&quot;context&quot;</span>{"\n"}
+                  {"    "}<span className="text-[#c3e88d]">&quot;github.com/risk_intel/sdk-go&quot;</span>{"\n"}
                   ){"\n\n"}
                   <span className="text-[#c792ea]">func</span>{" "}
                   <span className="text-[#82aaff]">initStream</span>() {"{"}
@@ -865,10 +865,10 @@ export default function LandingPage() {
                   <span className="text-[#82aaff]">Recv</span>()
                   {"\n"}
                   {"        "}
-                  <span className="text-[#676e95]">// Process tactical data in real-time</span>
+                  <span className="text-[#676e95]">{"// Process tactical data in real-time"}</span>
                   {"\n"}
                   {"        "}fmt.<span className="text-[#82aaff]">Printf</span>(
-                  <span className="text-[#c3e88d]">"Received Risk: %s\n"</span>, event.ID){"\n"}
+                  <span className="text-[#c3e88d]">&quot;Received Risk: %s\n&quot;</span>, event.ID){"\n"}
                   {"    "}{"}"}
                   {"\n"}
                   {"}"}
@@ -982,7 +982,7 @@ export default function LandingPage() {
           </Link>
         </div>
         <div className="font-label-sm text-label-sm text-on-surface-variant select-none">
-          © 2026 RISK_INTEL_CORE
+          &copy; 2026 RISK_INTEL_CORE
         </div>
       </footer>
     </div>
