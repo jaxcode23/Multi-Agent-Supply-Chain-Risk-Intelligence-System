@@ -55,7 +55,7 @@ services:
       - "7474:7474"   # HTTP Browser UI
       - "7687:7687"   # Bolt driver protocol
     environment:
-      NEO4J_AUTH: neo4j/neo4j1234
+      NEO4J_AUTH: ${NEO4J_USER:-neo4j}/${NEO4J_PASSWORD:-neo4j1234}
       # APOC plugin — enables advanced graph procedures used by the agent
       NEO4J_PLUGINS: '["apoc"]'
       NEO4J_dbms_security_procedures_unrestricted: "apoc.*"
@@ -90,9 +90,9 @@ services:
     ports:
       - "27017:27017"
     environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: supplychain1234
-      MONGO_INITDB_DATABASE: intelligence_db
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-supplychain1234}
+      MONGO_INITDB_DATABASE: ${MONGO_DB_NAME:-intelligence_db}
     volumes:
       - mongo_data:/data/db
       - mongo_config:/data/configdb
