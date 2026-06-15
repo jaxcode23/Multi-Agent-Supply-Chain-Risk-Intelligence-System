@@ -28,6 +28,7 @@ export default function DevDocsPage() {
   ]);
   const outputRef = useRef<HTMLDivElement>(null);
   const logContainerRef = useRef<HTMLDivElement>(null);
+  const responseTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
     const addLog = () => {
@@ -64,6 +65,14 @@ export default function DevDocsPage() {
     }
   }, [apiOutputs]);
 
+  useEffect(() => {
+    const responseTimers = responseTimersRef.current;
+
+    return () => {
+      responseTimers.forEach(clearTimeout);
+    };
+  }, []);
+
   const simulateAPI = (endpoint: string) => {
     setApiOutputs(prev => [
       ...prev,
@@ -73,7 +82,7 @@ export default function DevDocsPage() {
       </div>
     ]);
     
-    setTimeout(() => {
+    const timerId = setTimeout(() => {
       const response = endpoint === '/risk/analyze' 
         ? `{ "status": "secure", "threat_score": 0.02, "anomalies": [], "timestamp": "${new Date().toISOString()}" }`
         : `{ "results": [ { "id": "mem_291", "similarity": 0.982 }, { "id": "mem_102", "similarity": 0.841 } ], "latency_ms": 14 }`;
@@ -82,62 +91,18 @@ export default function DevDocsPage() {
         ...prev,
         <div key={`server-${Date.now()}`} className="flex items-center gap-2 mb-2">
           <span className="text-primary">[SERVER]</span> 
-          <span className="terminal-cursor">{response}</span>
+          <span className="devdocs-terminal-cursor">{response}</span>
         </div>
       ]);
     }, 800);
+
+    responseTimersRef.current.push(timerId);
   };
 
   return (
     <div className="bg-background text-on-surface font-body-md min-h-screen">
-      <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes scanline {
-            0% { transform: translateY(-100%); }
-            100% { transform: translateY(100%); }
-        }
-        .scanline-effect {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(to bottom, transparent 50%, rgba(107, 251, 154, 0.02) 50%);
-            background-size: 100% 4px;
-            pointer-events: none;
-            z-index: 100;
-        }
-        .crt-flicker {
-            animation: flicker 0.15s infinite;
-        }
-        @keyframes flicker {
-            0% { opacity: 0.98; }
-            50% { opacity: 1; }
-            100% { opacity: 0.99; }
-        }
-        .grid-bg {
-            background-image: 
-                linear-gradient(to right, rgba(61, 74, 62, 0.1) 1px, transparent 1px),
-                linear-gradient(to bottom, rgba(61, 74, 62, 0.1) 1px, transparent 1px);
-            background-size: 40px 40px;
-        }
-        .terminal-cursor::after {
-            content: "█";
-            animation: blink 1s step-end infinite;
-            margin-left: 4px;
-            color: #6bfb9a;
-        }
-        @keyframes blink {
-            from, to { opacity: 1; }
-            50% { opacity: 0; }
-        }
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: #0a0d1c; }
-        ::-webkit-scrollbar-thumb { background: #3d4a3e; }
-        ::-webkit-scrollbar-thumb:hover { background: #6bfb9a; }
-      ` }} />
-
-      <div className="grid-bg min-h-screen">
-        <div className="scanline-effect"></div>
+      <div className="devdocs-grid-bg min-h-screen">
+        <div className="devdocs-scanlines"></div>
         {/* TopNavBar */}
         <nav className="fixed top-4 left-1/2 -translate-x-1/2 w-[95%] rounded-lg z-50 bg-surface/80 backdrop-blur-md dark:bg-surface/80 border border-outline-variant flex justify-between items-center px-4 py-2 max-w-7xl mx-auto">
           <div className="flex items-center gap-4">
@@ -185,11 +150,11 @@ export default function DevDocsPage() {
               </Link>
             </nav>
             <div className="mt-auto px-4 pt-4 border-t border-outline-variant space-y-1">
-              <Link className="text-on-surface-variant px-4 py-2 flex items-center gap-3 hover:bg-surface-container-high transition-all" href="#">
+              <Link className="text-on-surface-variant px-4 py-2 flex items-center gap-3 hover:bg-surface-container-high transition-all" href="/devdocs">
                 <span className="material-symbols-outlined text-[18px]">description</span>
                 <span className="font-label-sm text-label-sm">Docs</span>
               </Link>
-              <Link className="text-on-surface-variant px-4 py-2 flex items-center gap-3 hover:bg-surface-container-high transition-all" href="#">
+              <Link className="text-on-surface-variant px-4 py-2 flex items-center gap-3 hover:bg-surface-container-high transition-all" href="/devdocs">
                 <span className="material-symbols-outlined text-[18px]">help</span>
                 <span className="font-label-sm text-label-sm">Support</span>
               </Link>
@@ -228,7 +193,7 @@ export default function DevDocsPage() {
                       <div className="w-2.5 h-2.5 rounded-full bg-outline-variant"></div>
                     </div>
                   </div>
-                  <pre className="p-6 font-code-md text-code-md overflow-x-auto"><code className="text-on-surface"><span className="text-primary">version:</span> "3.9"
+                  <pre className="p-6 font-code-md text-code-md overflow-x-auto"><code className="text-on-surface"><span className="text-primary">version:</span> {'"3.9"'}
 <span className="text-primary">services:</span>
   <span className="text-tertiary">toc-ingest-node:</span>
     <span className="text-primary">image:</span> toc-registry:5000/ingestion:latest
@@ -278,7 +243,7 @@ export default function DevDocsPage() {
                 </div>
 
                 {/* API Output Window */}
-                <div className="bg-black border border-outline-variant overflow-hidden crt-flicker">
+                <div className="bg-black border border-outline-variant overflow-hidden devdocs-crt-flicker">
                   <div className="bg-surface-container-highest px-4 py-2 border-b border-outline-variant flex items-center gap-2">
                     <div className="flex gap-1.5 mr-2">
                       <div className="w-2 h-2 rounded-full bg-red-500/50"></div>
@@ -340,11 +305,11 @@ export default function DevDocsPage() {
           <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center px-8 py-4 gap-4">
             <span className="font-label-sm text-label-sm text-primary">TOC_OS // v4.2.0-LTS</span>
             <div className="flex gap-6">
-              <Link className="font-code-md text-code-md text-on-surface-variant hover:text-primary transition-opacity underline" href="#">SysLog</Link>
-              <Link className="font-code-md text-code-md text-on-surface-variant hover:text-primary transition-opacity underline" href="#">Legal_Nodes</Link>
-              <Link className="font-code-md text-code-md text-on-surface-variant hover:text-primary transition-opacity underline" href="#">Protocol_v4</Link>
+              <Link className="font-code-md text-code-md text-on-surface-variant hover:text-primary transition-opacity underline" href="/devdocs">SysLog</Link>
+              <Link className="font-code-md text-code-md text-on-surface-variant hover:text-primary transition-opacity underline" href="/devdocs">Legal_Nodes</Link>
+              <Link className="font-code-md text-code-md text-on-surface-variant hover:text-primary transition-opacity underline" href="/devdocs">Protocol_v4</Link>
             </div>
-            <span className="font-code-md text-code-md text-on-surface-variant">© 2024 TOC_INFRASTRUCTURE_GROUP [STATUS: NOMINAL]</span>
+            <span className="font-code-md text-code-md text-on-surface-variant">(c) 2026 TOC_INFRASTRUCTURE_GROUP [STATUS: NOMINAL]</span>
           </div>
         </footer>
       </div>

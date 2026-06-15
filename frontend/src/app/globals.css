@@ -101,7 +101,7 @@
   text-shadow: 0 0 8px rgba(107, 251, 154, 0.6);
 }
 .block-cursor::after {
-  content: "█";
+  content: "\2588";
   display: inline-block;
   margin-left: 4px;
   animation: blink 1s step-end infinite;
@@ -219,8 +219,121 @@ body {
   padding: 1.5rem;
 }
 
+/* Architecture page effects */
+.architecture-grain-overlay {
+  background-image: url(/images/grain_architecture.png);
+  opacity: 0.03;
+  pointer-events: none;
+}
+
+.architecture-scanline {
+  width: 100%;
+  height: 2px;
+  background: rgba(107, 251, 154, 0.1);
+  position: fixed;
+  animation: architecture-scan 8s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes architecture-scan {
+  from { top: 0; }
+  to { top: 100%; }
+}
+
+.architecture-request-pulse {
+  animation: architecture-pulse-flow 2s infinite linear;
+}
+
+@keyframes architecture-pulse-flow {
+  0% { transform: translateY(0); opacity: 0; }
+  50% { opacity: 1; }
+  100% { transform: translateY(100px); opacity: 0; }
+}
+
+/* Ecosystem page effects */
+.ecosystem-noise-overlay {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.02;
+  pointer-events: none;
+}
+
+.ecosystem-scanlines {
+  background: linear-gradient(to bottom, transparent 50%, rgba(107, 251, 154, 0.03) 50%);
+  background-size: 100% 4px;
+  pointer-events: none;
+}
+
+.ecosystem-pulse-glow {
+  animation: ecosystem-pulse-glow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes ecosystem-pulse-glow {
+  0%, 100% { opacity: 0.5; filter: blur(8px); }
+  50% { opacity: 1; filter: blur(12px); }
+}
+
+.ecosystem-tracing-beam {
+  stroke-dasharray: 100;
+  animation: ecosystem-dash 5s linear infinite;
+}
+
+@keyframes ecosystem-dash {
+  from { stroke-dashoffset: 1000; }
+  to { stroke-dashoffset: 0; }
+}
+
+/* Developer docs page effects */
+.devdocs-grid-bg {
+  background-image:
+    linear-gradient(to right, rgba(61, 74, 62, 0.1) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(61, 74, 62, 0.1) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.devdocs-scanlines {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(to bottom, transparent 50%, rgba(107, 251, 154, 0.02) 50%);
+  background-size: 100% 4px;
+  pointer-events: none;
+  z-index: 100;
+}
+
+.devdocs-crt-flicker {
+  animation: devdocs-flicker 0.15s infinite;
+}
+
+@keyframes devdocs-flicker {
+  0% { opacity: 0.98; }
+  50% { opacity: 1; }
+  100% { opacity: 0.99; }
+}
+
+.devdocs-terminal-cursor::after {
+  content: "\2588";
+  animation: blink 1s step-end infinite;
+  margin-left: 4px;
+  color: #6bfb9a;
+}
+
+.devdocs-grid-bg ::-webkit-scrollbar { width: 4px; }
+.devdocs-grid-bg ::-webkit-scrollbar-track { background: #0a0d1c; }
+.devdocs-grid-bg ::-webkit-scrollbar-thumb { background: #3d4a3e; }
+.devdocs-grid-bg ::-webkit-scrollbar-thumb:hover { background: #6bfb9a; }
+
 @media (prefers-reduced-motion: reduce) {
-  .grid-bg, .scanline, .node-pulse, .shimmer-hover::after, .reveal, .packet {
+  .grid-bg,
+  .scanline,
+  .node-pulse,
+  .shimmer-hover::after,
+  .reveal,
+  .packet,
+  .architecture-scanline,
+  .architecture-request-pulse,
+  .ecosystem-pulse-glow,
+  .ecosystem-tracing-beam,
+  .devdocs-crt-flicker,
+  .devdocs-terminal-cursor::after {
     animation: none !important;
     transition: none !important;
     transform: none !important;

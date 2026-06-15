@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 
 const iconPaths = {
   chevronDown: <path d="m6 9 6 6 6-6" />,
@@ -81,47 +82,36 @@ const codeSamples = {
 } as const;
 
 export default function ArchitecturePage() {
+  const [failoverState, setFailoverState] = useState<"nominal" | "failing" | "recovered">("nominal");
+  const recoveryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (recoveryTimerRef.current) {
+        clearTimeout(recoveryTimerRef.current);
+      }
+    };
+  }, []);
+
+  const runFailoverSimulation = () => {
+    if (failoverState === "recovered") {
+      setFailoverState("nominal");
+      return;
+    }
+
+    if (failoverState === "failing") return;
+
+    setFailoverState("failing");
+    recoveryTimerRef.current = setTimeout(() => {
+      setFailoverState("recovered");
+      recoveryTimerRef.current = null;
+    }, 1200);
+  };
+
   return (
     <div className="bg-background text-on-surface font-body-md overflow-x-hidden selection:bg-primary selection:text-on-primary">
-      <style dangerouslySetInnerHTML={{ __html: `.grain-overlay {
-    background-image: url(/images/grain_architecture.png);
-    opacity: 0.03;
-    pointer-events: none
-    }
-.scanline {
-    width: 100%;
-    height: 2px;
-    background: rgba(107, 251, 154, 0.1);
-    position: absolute;
-    animation: scan 8s linear infinite
-    }
-@keyframes scan {
-    0% {
-        top: 0;
-        } 100% {
-        top: 100%;
-        }
-    }
-.request-pulse {
-    animation: pulse-flow 2s infinite linear
-    }
-@keyframes pulse-flow {
-    0% {
-        transform: translateY(0);
-        opacity: 0;
-        } 50% {
-        opacity: 1;
-        } 100% {
-        transform: translateY(100px);
-        opacity: 0;
-        }
-    }
-.terminal-glow {
-    box-shadow: 0 0 15px rgba(107, 251, 154, 0.1)
-    }` }} />
-
-<div className="fixed inset-0 grain-overlay z-50"></div>
-<div className="scanline z-40"></div>
+<div className="fixed inset-0 architecture-grain-overlay z-50"></div>
+<div className="architecture-scanline z-40"></div>
 {/* Top Navigation */}
 <nav className="fixed top-4 left-1/2 -translate-x-1/2 w-[95%] rounded-lg bg-surface/80 backdrop-blur-md dark:bg-surface/80 border border-outline-variant z-[60] flex justify-between items-center px-4 py-2 max-w-7xl mx-auto">
 <Link href="/intelligence" className="font-headline-sm text-headline-sm font-bold tracking-tighter text-primary">TOC_OS</Link>
@@ -186,7 +176,7 @@ export default function ArchitecturePage() {
 <div className="font-label-sm text-label-sm text-primary">GATEWAY_CLUSTER</div>
 <div className="font-code-md text-code-md opacity-50">v4.2 - Load Balance</div>
 <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 w-px h-12 bg-primary/30"></div>
-<div className="absolute -bottom-8 left-1/2 -translate-x-1/2 request-pulse text-primary"><SystemIcon name="chevronDown" className="h-4 w-4" /></div>
+<div className="absolute -bottom-8 left-1/2 -translate-x-1/2 architecture-request-pulse text-primary"><SystemIcon name="chevronDown" className="h-4 w-4" /></div>
 </div>
 {/* Layer 2 */}
 <div className="w-64 p-4 border border-outline-variant bg-surface-container-highest text-center relative group hover:border-primary transition-colors cursor-crosshair">
@@ -194,7 +184,7 @@ export default function ArchitecturePage() {
 <div className="font-label-sm text-label-sm text-on-surface">STREAMING_NODES</div>
 <div className="font-code-md text-code-md opacity-50">Kafka + Flink</div>
 <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 w-px h-12 bg-primary/30"></div>
-<div className="absolute -bottom-8 left-1/2 -translate-x-1/2 request-pulse text-primary delay-700"><SystemIcon name="chevronDown" className="h-4 w-4" /></div>
+<div className="absolute -bottom-8 left-1/2 -translate-x-1/2 architecture-request-pulse text-primary delay-700"><SystemIcon name="chevronDown" className="h-4 w-4" /></div>
 </div>
 {/* Layer 3 */}
 <div className="w-64 p-4 border border-outline-variant bg-surface-container-highest text-center relative group hover:border-primary transition-colors cursor-crosshair">
@@ -202,7 +192,7 @@ export default function ArchitecturePage() {
 <div className="font-label-sm text-label-sm text-on-surface">EMBEDDING_ENGINE</div>
 <div className="font-code-md text-code-md opacity-50">Vector Ingestion</div>
 <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 w-px h-12 bg-primary/30"></div>
-<div className="absolute -bottom-8 left-1/2 -translate-x-1/2 request-pulse text-primary delay-300"><SystemIcon name="chevronDown" className="h-4 w-4" /></div>
+<div className="absolute -bottom-8 left-1/2 -translate-x-1/2 architecture-request-pulse text-primary delay-300"><SystemIcon name="chevronDown" className="h-4 w-4" /></div>
 </div>
 {/* Layer 4 */}
 <div className="w-80 p-6 border-2 border-primary bg-surface-container-highest text-center shadow-[0_0_30px_rgba(107,251,154,0.1)]">
@@ -307,12 +297,12 @@ export default function ArchitecturePage() {
 <div className="relative bg-background p-6 border border-outline-variant rounded-sm overflow-hidden min-h-[300px] flex items-center justify-center">
 {/* Simplified Failover Visual */}
 <div className="relative w-full h-full flex items-center justify-around" id="failover-viz">
-<div className="flex flex-col items-center gap-2 transition-all duration-500" id="node-a">
-<div className="w-16 h-16 border border-primary flex items-center justify-center bg-primary/10">
-<SystemIcon name="hub" className="h-6 w-6 text-primary" />
+<div className={`flex flex-col items-center gap-2 transition-all duration-500 ${failoverState !== "nominal" ? "opacity-35" : ""}`} id="node-a">
+<div className={`w-16 h-16 border flex items-center justify-center transition-colors ${failoverState !== "nominal" ? "border-error bg-error/10" : "border-primary bg-primary/10"}`}>
+<SystemIcon name="hub" className={`h-6 w-6 ${failoverState !== "nominal" ? "text-error" : "text-primary"}`} />
 </div>
 <span className="font-label-sm text-[10px]">INGESTION_A</span>
-<div className="absolute top-1/2 left-[20%] w-[25%] h-[2px] bg-primary/20" id="link-ab"></div>
+<div className={`absolute top-1/2 left-[20%] w-[25%] h-[2px] transition-colors ${failoverState !== "nominal" ? "bg-error/40" : "bg-primary/20"}`} id="link-ab"></div>
 </div>
 <div className="flex flex-col items-center gap-2" id="orchestrator">
 <div className="w-20 h-20 border-2 border-primary flex items-center justify-center bg-primary/20 animate-pulse">
@@ -321,18 +311,28 @@ export default function ArchitecturePage() {
 <span className="font-label-sm text-[10px] text-primary">RUST_ORCHESTRATOR</span>
 </div>
 <div className="flex flex-col items-center gap-2 transition-all duration-500" id="node-b">
-<div className="w-16 h-16 border border-outline-variant flex items-center justify-center bg-surface-variant">
-<SystemIcon name="hub" className="h-6 w-6 text-on-surface-variant" />
+<div className={`w-16 h-16 border flex items-center justify-center transition-all ${failoverState === "recovered" ? "border-primary bg-primary/10 shadow-[0_0_16px_rgba(107,251,154,0.25)]" : "border-outline-variant bg-surface-variant"}`}>
+<SystemIcon name="hub" className={`h-6 w-6 ${failoverState === "recovered" ? "text-primary" : "text-on-surface-variant"}`} />
 </div>
 <span className="font-label-sm text-[10px]">BACKUP_B</span>
-<div className="absolute top-1/2 right-[20%] w-[25%] h-[2px] bg-outline-variant" id="link-bc"></div>
+<div className={`absolute top-1/2 right-[20%] w-[25%] h-[2px] transition-colors ${failoverState === "recovered" ? "bg-primary" : "bg-outline-variant"}`} id="link-bc"></div>
 </div>
 </div>
-<div className="absolute bottom-4 left-4 font-label-sm text-[10px] text-primary" id="status-text">STATUS: NOMINAL_FLOW</div>
+<div className={`absolute bottom-4 left-4 font-label-sm text-[10px] ${failoverState === "failing" ? "text-error" : "text-primary"}`} id="status-text">
+{failoverState === "nominal" && "STATUS: NOMINAL_FLOW"}
+{failoverState === "failing" && "STATUS: NODE_A_FAILURE_DETECTED"}
+{failoverState === "recovered" && "STATUS: TRAFFIC_MIGRATED_TO_BACKUP_B"}
 </div>
-<button className="w-full py-3 border border-error text-error font-label-sm text-label-sm hover:bg-error hover:text-white transition-all uppercase tracking-widest" id="trigger-fail">
-                        Inject System Failure (Node_A)
-                    </button>
+</div>
+<button
+  className="w-full py-3 border border-error text-error font-label-sm text-label-sm hover:bg-error hover:text-white transition-all uppercase tracking-widest disabled:cursor-wait disabled:opacity-60"
+  disabled={failoverState === "failing"}
+  id="trigger-fail"
+  onClick={runFailoverSimulation}
+  type="button"
+>
+  {failoverState === "recovered" ? "Reset Simulation" : failoverState === "failing" ? "Migrating State..." : "Inject System Failure (Node_A)"}
+</button>
 </div>
 </div>
 <div className="bg-surface-container border border-outline-variant p-6">
@@ -426,12 +426,12 @@ export default function ArchitecturePage() {
 <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center px-4 md:px-8 py-8">
 <div className="font-label-sm text-label-sm text-primary mb-4 md:mb-0">TOC_INFRASTRUCTURE</div>
 <div className="font-code-md text-code-md text-on-surface-variant text-center md:text-left mb-4 md:mb-0">
-                © 2024 TOC_INFRASTRUCTURE_GROUP [STATUS: NOMINAL]
+                (c) 2026 TOC_INFRASTRUCTURE_GROUP [STATUS: NOMINAL]
             </div>
 <div className="flex gap-8">
-<a className="font-code-md text-code-md text-on-surface-variant hover:text-primary underline cursor-pointer transition-opacity" href="#">SysLog</a>
-<a className="font-code-md text-code-md text-on-surface-variant hover:text-primary underline cursor-pointer transition-opacity" href="#">Legal_Nodes</a>
-<a className="font-code-md text-code-md text-on-surface-variant hover:text-primary underline cursor-pointer transition-opacity" href="#">Protocol_v4</a>
+<Link className="font-code-md text-code-md text-on-surface-variant hover:text-primary underline cursor-pointer transition-opacity" href="/devdocs">SysLog</Link>
+<Link className="font-code-md text-code-md text-on-surface-variant hover:text-primary underline cursor-pointer transition-opacity" href="/devdocs">Legal_Nodes</Link>
+<Link className="font-code-md text-code-md text-on-surface-variant hover:text-primary underline cursor-pointer transition-opacity" href="/devdocs">Protocol_v4</Link>
 </div>
 </div>
 </footer>
