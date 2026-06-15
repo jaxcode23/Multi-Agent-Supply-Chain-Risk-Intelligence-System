@@ -84,7 +84,7 @@ export default function ArchitecturePage() {
   return (
     <div className="bg-background text-on-surface font-body-md overflow-x-hidden selection:bg-primary selection:text-on-primary">
       <style dangerouslySetInnerHTML={{ __html: `.grain-overlay {
-    background-image: url(https://lh3.googleusercontent.com/aida-public/AB6AXuDA5b-FRM3zeJhAB8bRrGZN08rIkYgod9M4VUL-eW4UhdtafNugTUuvXSFsNWzs17IKFDOIM9vlBtkMGnJtlmVUUO1m5gsJReDXvKFRiwfVlFc62fC98xYvms3fdo3e3SkUXeGq6Slu5QI9y_E4ImqU3t0TPPXmaCkmlvYAMFF4GEnTa9WRJsltVf5mYJ_XxReZwv_Cmq0OAp-gxS3g7VVDOXQUnCxjwqCaCrLyDqKVRORPDWBlZa5_Cl6fkVotXgo_WAcVomipBLw);
+    background-image: url(/images/grain_architecture.png);
     opacity: 0.03;
     pointer-events: none
     }

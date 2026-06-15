@@ -48,7 +48,6 @@ export default function DevDocsPage() {
     };
 
     const intervalId = setInterval(addLog, 2500);
-    addLog(); // Initial log
 
     return () => clearInterval(intervalId);
   }, []);
@@ -136,7 +135,6 @@ export default function DevDocsPage() {
         ::-webkit-scrollbar-thumb { background: #3d4a3e; }
         ::-webkit-scrollbar-thumb:hover { background: #6bfb9a; }
       ` }} />
-      <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
 
       <div className="grid-bg min-h-screen">
         <div className="scanline-effect"></div>
