@@ -238,7 +238,7 @@ export default function LandingPage() {
     if (!pipeline) return;
 
     const createPipelinePacket = (startCard: HTMLElement, endCard: HTMLElement) => {
-      if (!parent || !pipeline) return;
+      if (!pipeline) return;
 
       const packet = document.createElement("div");
       packet.className = "packet";
