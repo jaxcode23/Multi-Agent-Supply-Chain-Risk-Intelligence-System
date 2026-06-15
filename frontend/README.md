@@ -21,8 +21,10 @@ frontend/
         ├── globals.css             # Base styles
         ├── page.tsx                # Landing page (Home)
         ├── architecture/           # Infrastructure & systems overview
+        ├── console/                # Tactical operations console route
         ├── devdocs/                # Developer API & console logs
-        └── ecosystem/              # Agent topology & supplier graph
+        ├── ecosystem/              # Agent topology & supplier graph
+        └── intelligence/           # Live intelligence dashboard
 ```
 
 ---
@@ -33,6 +35,8 @@ frontend/
 cd frontend
 npm install
 npm run dev       # starts on http://localhost:3000
+npm run lint      # runs ESLint
+npm run build     # creates a production build
 ```
 
 ---
@@ -45,6 +49,8 @@ npm run dev       # starts on http://localhost:3000
 | **Architecture Page** (`src/app/architecture/page.tsx`) | ✅ Implemented |
 | **Ecosystem Page** (`src/app/ecosystem/page.tsx`) | ✅ Implemented (Includes Supplier Graph & Live Feed) |
 | **DevDocs Page** (`src/app/devdocs/page.tsx`) | ✅ Implemented (Includes Mock API Console) |
+| **Intelligence Page** (`src/app/intelligence/page.tsx`) | ✅ Implemented (Includes Interactive Terminal) |
+| **Console Route** (`src/app/console/page.tsx`) | ✅ Implemented |
 | **Backend API integration** | ❌ Not built (Currently simulated client-side) |
 | **WebSocket connection** | ❌ Not built (Currently using mock intervals) |
 

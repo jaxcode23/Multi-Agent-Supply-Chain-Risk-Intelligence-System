@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 import Link from "next/link";
 
 // Custom premium SVG Icons for offline resilience and absolute positioning control
@@ -73,6 +74,13 @@ interface TerminalLog {
   text: string;
 }
 
+const COMMAND_PHRASES = [
+  "Analyze supplier instability...",
+  "Scan for maritime anomalies...",
+  "Run predictive maintenance audit...",
+  "Decrypt incoming telemetry...",
+];
+
 export default function TacticalOperationsConsole() {
   // Boot sequence simulation state
   const [bootLogs, setBootLogs] = useState<string[]>([]);
@@ -93,12 +101,6 @@ export default function TacticalOperationsConsole() {
   ]);
 
   // Command auto-typing phrases for placeholder cycling
-  const phrases = [
-    "Analyze supplier instability...",
-    "Scan for maritime anomalies...",
-    "Run predictive maintenance audit...",
-    "Decrypt incoming telemetry...",
-  ];
   const [phraseIndex, setPhraseIndex] = useState(0);
   const terminalBottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -117,21 +119,35 @@ export default function TacticalOperationsConsole() {
     ];
 
     let logIndex = 0;
+    let cancelled = false;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const schedule = (callback: () => void, delay: number) => {
+      const timerId = setTimeout(callback, delay);
+      timers.push(timerId);
+    };
+
     const addNextLog = () => {
+      if (cancelled) return;
+
       if (logIndex < logs.length) {
         const timestamp = new Date().toLocaleTimeString();
         setBootLogs((prev) => [...prev, `[${timestamp}] ${logs[logIndex]}`]);
         logIndex++;
-        setTimeout(addNextLog, Math.random() * 200 + 80);
+        schedule(addNextLog, Math.random() * 200 + 80);
       } else {
-        setTimeout(() => {
+        schedule(() => {
           setBootComplete(true);
-          setTimeout(() => setBootVisible(false), 1500);
+          schedule(() => setBootVisible(false), 1500);
         }, 8000);
       }
     };
 
-    addNextLog();
+    schedule(addNextLog, 100);
+
+    return () => {
+      cancelled = true;
+      timers.forEach(clearTimeout);
+    };
   }, []);
 
   // Fluctuating Dashboard Metrics for hyper-realism
@@ -154,7 +170,7 @@ export default function TacticalOperationsConsole() {
   // Placeholder phrase cycling
   useEffect(() => {
     const phraseInterval = setInterval(() => {
-      setPhraseIndex((prev) => (prev + 1) % phrases.length);
+      setPhraseIndex((prev) => (prev + 1) % COMMAND_PHRASES.length);
     }, 6000);
 
     return () => clearInterval(phraseInterval);
@@ -285,9 +301,9 @@ export default function TacticalOperationsConsole() {
             <SearchIcon className="text-sm text-primary w-4 h-4" />
             <span className="font-label-sm text-label-sm text-on-surface-variant select-none">NODE_QUERY...</span>
           </div>
-          <button className="font-label-sm text-label-sm bg-primary text-on-primary px-4 py-1.5 rounded uppercase tracking-wider font-bold active:scale-95 duration-100 cursor-pointer">
+          <Link href="/console" className="font-label-sm text-label-sm bg-primary text-on-primary px-4 py-1.5 rounded uppercase tracking-wider font-bold active:scale-95 duration-100 cursor-pointer">
             Launch Console
-          </button>
+          </Link>
         </div>
       </header>
 
@@ -297,10 +313,12 @@ export default function TacticalOperationsConsole() {
         <aside className="hidden md:flex h-full w-64 border-r border-outline-variant flex-col bg-surface-container">
           <div className="p-4 border-b border-outline-variant">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 border border-primary p-0.5 bg-surface-container-high overflow-hidden">
-                <img
+              <div className="relative w-10 h-10 border border-primary p-0.5 bg-surface-container-high overflow-hidden">
+                <Image
                   alt="User Avatar"
-                  className="w-full h-full object-cover"
+                  className="object-cover"
+                  fill
+                  sizes="40px"
                   src="/images/user_avatar.png"
                 />
               </div>
@@ -452,9 +470,11 @@ export default function TacticalOperationsConsole() {
 
               {/* Map/Visual Section */}
               <div className="md:col-span-2 border border-outline-variant bg-surface-container-lowest h-64 relative overflow-hidden flex items-center justify-center group transition-all duration-300 hover:border-primary/30">
-                <img
+                <Image
                   alt="Tactical Map"
                   className="absolute inset-0 w-full h-full object-cover opacity-40 mix-blend-screen group-hover:scale-105 transition-transform duration-[10000ms] ease-out"
+                  fill
+                  sizes="(min-width: 768px) 70vw, 100vw"
                   src="/images/tactical_map.png"
                 />
                 <div className="relative z-10 font-label-sm text-primary text-center px-8 select-none pointer-events-none">
@@ -495,7 +515,7 @@ export default function TacticalOperationsConsole() {
                     value={terminalInputValue}
                     onChange={(e) => setTerminalInputValue(e.target.value)}
                     className="w-full bg-transparent border-none outline-none focus:ring-0 text-primary caret-primary font-code-md p-0 block-cursor"
-                    placeholder={phrases[phraseIndex]}
+                    placeholder={COMMAND_PHRASES[phraseIndex]}
                     autoFocus
                   />
                 </div>
@@ -568,7 +588,7 @@ export default function TacticalOperationsConsole() {
       {/* FOOTER */}
       <footer className="bg-surface-container-lowest border-t border-outline-variant flex justify-between items-center px-6 py-4 w-full z-50 flex-shrink-0">
         <span className="font-label-sm text-[10px] text-primary uppercase select-none">
-          © 2026 TOC_INFRASTRUCTURE_GROUP [STATUS: NOMINAL]
+          (c) 2026 TOC_INFRASTRUCTURE_GROUP [STATUS: NOMINAL]
         </span>
         <div className="flex gap-6">
           <Link className="font-code-md text-xs text-on-surface-variant hover:text-primary underline transition-opacity" href="/devdocs">

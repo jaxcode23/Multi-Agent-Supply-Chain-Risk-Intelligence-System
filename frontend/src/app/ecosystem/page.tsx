@@ -108,35 +108,8 @@ function SystemIcon({ name, className = "h-5 w-5" }: { name: SystemIconName; cla
 export default function EcosystemPage() {
   return (
     <div className="bg-background text-on-surface font-body-md overflow-x-hidden selection:bg-primary selection:text-on-primary">
-      <style dangerouslySetInnerHTML={{ __html: `
-        .noise-overlay {
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-            opacity: 0.02;
-            pointer-events: none;
-        }
-        .scanline {
-            background: linear-gradient(to bottom, transparent 50%, rgba(107, 251, 154, 0.03) 50%);
-            background-size: 100% 4px;
-            pointer-events: none;
-        }
-        @keyframes pulse-glow {
-            0%, 100% { opacity: 0.5; filter: blur(8px); }
-            50% { opacity: 1; filter: blur(12px); }
-        }
-        .animate-pulse-glow { animation: pulse-glow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-
-        .tracing-beam {
-            stroke-dasharray: 100;
-            animation: dash 5s linear infinite;
-        }
-        @keyframes dash {
-            from { stroke-dashoffset: 1000; }
-            to { stroke-dashoffset: 0; }
-        }
-    ` }} />
-
-<div className="fixed inset-0 noise-overlay z-[100] pointer-events-none"></div>
-<div className="fixed inset-0 scanline z-[101] pointer-events-none opacity-20"></div>
+<div className="fixed inset-0 ecosystem-noise-overlay z-[100] pointer-events-none"></div>
+<div className="fixed inset-0 ecosystem-scanlines z-[101] pointer-events-none opacity-20"></div>
 {/* TopNavBar */}
 <nav className="fixed top-4 left-1/2 -translate-x-1/2 w-[95%] rounded-lg border border-outline-variant bg-surface/80 backdrop-blur-md z-50 flex justify-between items-center px-4 py-2 max-w-7xl mx-auto">
 <div className="flex items-center gap-8">
@@ -222,13 +195,13 @@ export default function EcosystemPage() {
 <path className="opacity-20" d="M 200 250 Q 500 400 800 250" fill="none" stroke="#6bfb9a" strokeWidth="0.5"></path>
 <path className="opacity-20" d="M 500 100 L 500 400" fill="none" stroke="#6bfb9a" strokeWidth="0.5"></path>
 {/* Flowing Signals */}
-<path className="tracing-beam" d="M 200 250 Q 500 100 800 250" fill="none" stroke="url(#beamGradient)" strokeWidth="2"></path>
-<path className="tracing-beam" d="M 800 250 Q 500 400 200 250" fill="none" stroke="url(#beamGradient)" strokeWidth="2" style={{ animationDelay: '-2.5s' }}></path>
+<path className="ecosystem-tracing-beam" d="M 200 250 Q 500 100 800 250" fill="none" stroke="url(#beamGradient)" strokeWidth="2"></path>
+<path className="ecosystem-tracing-beam" d="M 800 250 Q 500 400 200 250" fill="none" stroke="url(#beamGradient)" strokeWidth="2" style={{ animationDelay: '-2.5s' }}></path>
 </svg>
 {/* Centered Main Node */}
 <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 group">
 <div className="w-32 h-32 border border-primary/50 flex items-center justify-center relative bg-surface/50 backdrop-blur">
-<div className="absolute inset-0 border border-primary animate-pulse-glow opacity-30"></div>
+<div className="absolute inset-0 border border-primary ecosystem-pulse-glow opacity-30"></div>
 <div className="text-center">
 <SystemIcon name="psychology" className="h-12 w-12 text-primary" />
 <div className="font-label-sm text-[10px] text-primary mt-1">CORE_ORCH</div>
@@ -488,12 +461,12 @@ export default function EcosystemPage() {
 <footer className="bg-surface-container-lowest border-t border-outline-variant w-full mt-20">
 <div className="flex justify-between items-center px-8 py-4 max-w-[1600px] mx-auto lg:ml-64">
 <div className="font-code-md text-code-md text-on-surface-variant uppercase tracking-tighter">
-                &copy; 2024 TOC_INFRASTRUCTURE_GROUP [STATUS: NOMINAL]
+                (c) 2026 TOC_INFRASTRUCTURE_GROUP [STATUS: NOMINAL]
             </div>
 <div className="flex gap-8 items-center">
-<a className="font-code-md text-code-md text-on-surface-variant hover:text-primary transition-opacity cursor-pointer" href="#">SysLog</a>
-<a className="font-code-md text-code-md text-on-surface-variant hover:text-primary transition-opacity cursor-pointer" href="#">Legal_Nodes</a>
-<a className="font-code-md text-code-md text-on-surface-variant hover:text-primary transition-opacity cursor-pointer" href="#">Protocol_v4</a>
+<Link className="font-code-md text-code-md text-on-surface-variant hover:text-primary transition-opacity cursor-pointer" href="/devdocs">SysLog</Link>
+<Link className="font-code-md text-code-md text-on-surface-variant hover:text-primary transition-opacity cursor-pointer" href="/devdocs">Legal_Nodes</Link>
+<Link className="font-code-md text-code-md text-on-surface-variant hover:text-primary transition-opacity cursor-pointer" href="/devdocs">Protocol_v4</Link>
 <div className="flex items-center gap-2 px-3 py-1 bg-primary/10 border border-primary/20">
 <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse"></span>
 <span className="font-label-sm text-[10px] text-primary">ENCRYPTED</span>
