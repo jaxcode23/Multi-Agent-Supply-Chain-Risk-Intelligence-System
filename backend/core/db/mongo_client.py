@@ -14,3 +14,7 @@ if not MONGO_URI or not DB_NAME:
 mongo_client = MongoClient(MONGO_URI)
 mongo_db = mongo_client[DB_NAME]
 news_collection = mongo_db["processed_news"]
+
+
+def get_mongo_client():
+    return mongo_client
