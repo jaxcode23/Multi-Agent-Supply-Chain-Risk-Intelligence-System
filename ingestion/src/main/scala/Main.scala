@@ -2,7 +2,9 @@ import zio._
 import zio.http.Client
 import zio.logging.backend.SLF4J
 
-import scalapb.zio_grpc.{ServerLayer, ServiceList}
+import io.grpc.ServerBuilder
+
+import scalapb.zio_grpc.{ServerLayer, Server}
 
 import service.IngestionService
 import db.ChromaDBClient
@@ -16,20 +18,23 @@ object Main extends ZIOAppDefault {
   override def run: ZIO[Any, Throwable, Nothing] = {
     val cfg = AppConfig.load()
 
-    val serverProgram: ZIO[IngestionService, Throwable, Nothing] =
-      for {
-        _ <- ZIO.logInfo(s"🚀 Scala gRPC Ingestion Hub starting on port ${cfg.grpcPort}")
-        _ <- ZIO.logInfo(s"ChromaDB → ${cfg.chromaHost} / ${cfg.chromaCollection}")
-        server <- ServerLayer
-                    .fromServiceList(cfg.grpcPort)(ServiceList.add[IngestionService])
-                    .launch
-      } yield server
+    val serverLayer: ZLayer[IngestionService, Throwable, Server] =
+      ZLayer.scoped {
+        for {
+          service <- ZIO.service[IngestionService]
+          env     <- ServerLayer.fromService(ServerBuilder.forPort(cfg.grpcPort), service).build
+        } yield env.get[Server]
+      }
 
-    serverProgram.provide(
-      Client.default,
-      ZLayer.succeed(cfg),
-      ChromaDBClient.auto,
-      IngestionService.layer,
-    )
+    val fullLayer: ZLayer[Any, Throwable, Server] =
+      ZLayer.make[Server](
+        Client.default,
+        ZLayer.succeed(cfg),
+        ChromaDBClient.auto,
+        IngestionService.layer,
+        serverLayer
+      )
+
+    fullLayer.launch
   }
 }
