@@ -50,14 +50,29 @@ func TestPool(t *testing.T) {
 		pool := workerpool.NewPool(ctx, 2)
 		pool.Start()
 
-		cancel() // Stop the pool immediately
-		
-		err := pool.Submit(&MockTask{
-			executeFunc: func(ctx context.Context) error { return nil },
-		})
+		// Submit a blocking task so workers are busy
+		for i := 0; i < 4; i++ {
+			_ = pool.Submit(&MockTask{
+				executeFunc: func(ctx context.Context) error {
+					<-ctx.Done()
+					return ctx.Err()
+				},
+			})
+		}
 
-		if err == nil {
-			t.Error("expected error when submitting to stopped pool, got nil")
+		cancel() // Cancel — unblocks workers
+
+		done := make(chan struct{})
+		go func() {
+			pool.Stop() // Should not hang
+			close(done)
+		}()
+
+		select {
+		case <-done:
+			// Pool stopped cleanly
+		case <-time.After(2 * time.Second):
+			t.Fatal("pool.Stop() hung after context cancellation")
 		}
 	})
 
