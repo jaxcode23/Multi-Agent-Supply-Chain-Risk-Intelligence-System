@@ -16,6 +16,7 @@ struct Config {
 struct ServiceConfig {
     path: String,
     command: String,
+    #[serde(default)]
     args: Vec<String>,
 }
 
@@ -184,5 +185,97 @@ fn main() {
     // Keep the main thread alive so the child processes stay open
     loop {
         thread::sleep(Duration::from_secs(1));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_valid_config() {
+        let toml = r#"
+[services.backend]
+path = "./backend"
+command = "uvicorn"
+args = ["main:app", "--port", "8001"]
+
+[services.frontend]
+path = "./frontend"
+command = "npm"
+args = ["run", "dev"]
+"#;
+        let config: Config = toml::from_str(toml).expect("valid TOML should parse");
+        assert_eq!(config.services.len(), 2);
+        assert!(config.services.contains_key("backend"));
+        assert!(config.services.contains_key("frontend"));
+    }
+
+    #[test]
+    fn test_service_config_fields() {
+        let toml = r#"
+[services.scraper]
+path = "./scrapers"
+command = "go"
+args = ["run", "cmd/api/main.go"]
+"#;
+        let config: Config = toml::from_str(toml).expect("valid TOML should parse");
+        let scraper = &config.services["scraper"];
+        assert_eq!(scraper.path, "./scrapers");
+        assert_eq!(scraper.command, "go");
+        assert_eq!(scraper.args, vec!["run", "cmd/api/main.go"]);
+    }
+
+    #[test]
+    fn test_parse_empty_services() {
+        let toml = "[services]\n";
+        let config: Config = toml::from_str(toml).expect("empty services should parse");
+        assert!(config.services.is_empty());
+    }
+
+    #[test]
+    fn test_parse_missing_services_fails() {
+        let result: Result<Config, _> = toml::from_str("");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_service_without_args_defaults_to_empty() {
+        let toml = r#"
+[services.backend]
+path = "./backend"
+command = "python3"
+"#;
+        let config: Config = toml::from_str(toml).expect("args is optional");
+        assert!(config.services["backend"].args.is_empty());
+    }
+
+    #[test]
+    fn test_spawn_service_nonexistent_command() {
+        let config = ServiceConfig {
+            path: ".".to_string(),
+            command: "nonexistent-command-12345".to_string(),
+            args: vec![],
+        };
+        let result = spawn_service("test", &config);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_window_resolve_command_linux_noop() {
+        #[cfg(not(target_os = "windows"))]
+        {
+            let config = ServiceConfig {
+                path: ".".to_string(),
+                command: "echo".to_string(),
+                args: vec!["hello".to_string()],
+            };
+            let child = spawn_service("echo_test", &config);
+            // On Linux, echo should spawn successfully
+            assert!(child.is_some());
+            if let Some(mut c) = child {
+                let _ = c.wait();
+            }
+        }
     }
 }
