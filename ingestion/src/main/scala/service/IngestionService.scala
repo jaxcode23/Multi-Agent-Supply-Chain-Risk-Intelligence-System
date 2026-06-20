@@ -4,26 +4,30 @@ import scrapper.scrapper._
 import scrapper.scrapper.ZioScrapper.ScrapperService
 import zio._
 import zio.stream._
-import io.grpc.Status
-import scalapb.zio_grpc.StatusException
+import io.grpc.StatusException
 
 import db.ChromaDBClient
 import streams.RiskIntelPipeline
+import streams.RiskIntelPipeline.ChunkedDocument
 import config.AppConfig
 
 class IngestionService(chromaClient: ChromaDBClient, cfg: AppConfig) extends ScrapperService {
 
   override def streamScrapeData(
-    request: ZStream[Any, StatusException, ScrapePayload]
-  ): ZIO[Any, StatusException, ScrapeResponse] = {
+    request: Stream[StatusException, ScrapePayload]
+  ): IO[StatusException, ScrapeResponse] = {
 
-    val pipeline: ZIO[Any, Throwable, (Int, Int)] =
+    val result: IO[Throwable, ScrapeResponse] =
       request
-        .mapError(_.asException)
-        .collect {
-          case p if p.rawContent.trim.nonEmpty => (p.rawContent, p.metadata)
+        .mapError(e => e: Throwable)
+        .collect { case p if p.rawContent.trim.nonEmpty => (p.rawContent, p.metadata) }
+        .flatMap { case (text, meta) =>
+          val normalized = text.trim.replaceAll("\\s+", " ")
+          val chunks = RiskIntelPipeline.chunkText(normalized, cfg.chunkSize, cfg.chunkOverlap)
+          ZStream.fromIterable(chunks.zipWithIndex.map { case (content, idx) =>
+            ChunkedDocument(content, meta, idx)
+          })
         }
-        .via(RiskIntelPipeline.processStream(cfg))
         .grouped(cfg.batchSize)
         .mapZIO { batch =>
           chromaClient
@@ -33,22 +37,23 @@ class IngestionService(chromaClient: ChromaDBClient, cfg: AppConfig) extends Scr
               ZIO.logWarning(s"ChromaDB batch upsert failed (${batch.size} chunks): ${err.getMessage}").as(0)
             }
         }
-        .runFold((0, 0)) { case ((processed, failed), batchProcessed) =>
+        .runFold[(Int, Int)]((0, 0)) { case ((processed, failed), batchProcessed) =>
           if (batchProcessed > 0) (processed + batchProcessed, failed)
           else (processed, failed + 1)
         }
+        .flatMap { case (processed, failedBatches) =>
+          val success = failedBatches == 0
+          val msg =
+            if (success) s"Stream processed successfully. Chunks upserted: $processed"
+            else s"Stream complete with $failedBatches failed batch(es). Chunks upserted: $processed"
+          ZIO.logInfo(msg).as(ScrapeResponse(success = success, message = msg, processedCount = processed))
+        }
 
-    pipeline.mapBoth(
-      err => StatusException(Status.INTERNAL.withDescription(s"Stream processing failed: ${err.getMessage}")),
-      { case (processed, failedBatches) =>
-        val success = failedBatches == 0
-        val msg =
-          if (success) s"Stream processed successfully. Chunks upserted: $processed"
-          else s"Stream complete with $failedBatches failed batch(es). Chunks upserted: $processed"
-        ZIO.logInfo(msg)
-        ScrapeResponse(success = success, message = msg, processedCount = processed)
-      }
-    ).flatMap { case (effect, response) => effect.as(response) }
+    result.catchAll(err =>
+      ZIO.fail(new StatusException(io.grpc.Status.INTERNAL.withDescription(
+        s"Stream processing failed: ${err.getMessage}"
+      )))
+    )
   }
 }
 

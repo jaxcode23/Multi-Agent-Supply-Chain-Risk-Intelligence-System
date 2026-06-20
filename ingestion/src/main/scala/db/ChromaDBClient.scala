@@ -6,6 +6,8 @@ import zio.json._
 import streams.RiskIntelPipeline.ChunkedDocument
 import config.AppConfig
 
+import java.io.IOException
+
 private case class ChromaUpsertRequest(
   ids:       List[String],
   documents: List[String],
@@ -36,7 +38,7 @@ final class ChromaDBClientLive(httpClient: Client, cfg: AppConfig) extends Chrom
 
     val body = ChromaUpsertRequest(
       ids = chunks.map { c =>
-        s"${c.metadata.getOrElse("source", "doc")}-${c.chunkIndex}-${System.currentTimeMillis()}"
+        s"${c.metadata.getOrElse("source", "doc")}-${c.chunkIndex}-${java.lang.System.currentTimeMillis()}"
       }.toList,
       documents = chunks.map(_.content).toList,
       metadatas = chunks.map(_.metadata).toList
@@ -47,17 +49,18 @@ final class ChromaDBClientLive(httpClient: Client, cfg: AppConfig) extends Chrom
       .addHeader(Header.ContentType(MediaType.application.json))
       .addHeader("X-Chroma-Token", cfg.chromaApiKey)
 
-    httpClient
-      .request(request)
-      .flatMap { resp =>
-        if (resp.status.isSuccess)
-          ZIO.logDebug(s"ChromaDB upsert OK — ${chunks.size} chunks → ${cfg.chromaCollection}")
-        else
-          resp.body.asString.flatMap { b =>
-            ZIO.fail(new RuntimeException(s"ChromaDB upsert failed [${resp.status.code}]: $b"))
-          }
-      }
-      .provide(ZLayer.succeed(httpClient))
+    ZIO.scoped {
+      httpClient
+        .request(request)
+        .flatMap { resp =>
+          if (resp.status.isSuccess)
+            ZIO.logDebug(s"ChromaDB upsert OK — ${chunks.size} chunks → ${cfg.chromaCollection}")
+          else
+            resp.body.asString.flatMap { b =>
+              ZIO.fail(new RuntimeException(s"ChromaDB upsert failed [${resp.status.code}]: $b"))
+            }
+        }
+    }
   }
 }
 

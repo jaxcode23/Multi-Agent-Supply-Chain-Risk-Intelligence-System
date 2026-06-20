@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package scrapper;
 
-option go_package = "github.com/AshikaM07/scrapers/pkg/pb";
+option go_package = "github.com/jaxcode23/scrapers/pkg/pb";
 
 service ScrapperService {
   // Client-side streaming of scraped data to the Scala backend

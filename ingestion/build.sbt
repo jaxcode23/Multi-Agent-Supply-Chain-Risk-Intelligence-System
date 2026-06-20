@@ -49,9 +49,9 @@ libraryDependencies ++= Seq(
 )
 
 // ScalaPB: generate both plain case classes AND the ZIO gRPC service traits
-Compile / PB.targets := Seq(
-  scalapb.gen(grpc = true) -> (Compile / sourceManaged).value / "scalapb"
-)
+import scalapb.zio_grpc.ZioCodeGenerator
 
-// ScalaPB needs the zio-grpc code generator on the compiler plugin classpath
-libraryDependencies += "com.thesamet.scalapb.zio-grpc" %% "zio-grpc-codegen" % ZioGrpcVersion % "compile"
+Compile / PB.targets := Seq(
+  scalapb.gen(grpc = true) -> (Compile / sourceManaged).value / "scalapb",
+  ZioCodeGenerator -> (Compile / sourceManaged).value / "scalapb"
+)
