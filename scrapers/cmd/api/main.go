@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -32,6 +33,14 @@ func envInt(key string, fallback int) int {
 	return fallback
 }
 
+func trimEach(s []string) []string {
+	out := make([]string, len(s))
+	for i, v := range s {
+		out[i] = strings.TrimSpace(v)
+	}
+	return out
+}
+
 func envDuration(key string, fallback time.Duration) time.Duration {
 	if v := os.Getenv(key); v != "" {
 		if n, err := strconv.Atoi(v); err == nil {
@@ -41,13 +50,46 @@ func envDuration(key string, fallback time.Duration) time.Duration {
 	return fallback
 }
 
+// seedDef represents a single scrape target with its DOM selectors
+type seedDef struct {
+	URL       string
+	Selectors []string
+}
+
 var (
 	scalaHubAddr      = envOrDefault("SCALA_HUB_ADDR", "localhost:9090")
 	httpAddr          = envOrDefault("HTTP_ADDR", ":8080")
 	workerConcurrency = envInt("WORKER_CONCURRENCY", 5)
 	payloadBufferSize = envInt("PAYLOAD_BUFFER_SIZE", 200)
 	shutdownGrace     = envDuration("SHUTDOWN_GRACE_SECONDS", 15*time.Second)
+	scrapeSeeds       = parseSeeds(envOrDefault("SCRAPE_SEEDS", ""))
 )
+
+// parseSeeds parses the SCRAPE_SEEDS env var format:
+// "url,selector1,selector2;url,selector1"
+func parseSeeds(raw string) []seedDef {
+	if raw == "" {
+		return []seedDef{
+			{URL: "https://example.com", Selectors: []string{"h1", "p"}},
+		}
+	}
+	var seeds []seedDef
+	for _, part := range strings.Split(raw, ";") {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		tokens := strings.Split(part, ",")
+		if len(tokens) < 2 {
+			continue
+		}
+		seeds = append(seeds, seedDef{
+			URL:       strings.TrimSpace(tokens[0]),
+			Selectors: trimEach(tokens[1:]),
+		})
+	}
+	return seeds
+}
 
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
@@ -127,7 +169,12 @@ func main() {
 		}
 	}()
 
-	logger.Info("✅ Go Gateway ready", "http", httpAddr, "grpc_target", scalaHubAddr)
+	for _, seed := range scrapeSeeds {
+		logger.Info("starting scrape seed", "url", seed.URL, "selectors", seed.Selectors)
+		scraperSvc.StartHopping(rootCtx, seed.URL, seed.Selectors)
+	}
+
+	logger.Info("✅ Go Gateway ready", "http", httpAddr, "grpc_target", scalaHubAddr, "seeds", len(scrapeSeeds))
 	<-rootCtx.Done()
 	logger.Info("shutdown signal received", "grace_seconds", shutdownGrace.Seconds())
 

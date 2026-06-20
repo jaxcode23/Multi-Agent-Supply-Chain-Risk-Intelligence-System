@@ -1,25 +1,9 @@
 from fastapi import APIRouter, HTTPException, Body
-from pydantic import BaseModel
 from typing import Any
+from core.models import RiskEvent, MitigationResponse
 from gateway.orchestration.mitigation_graph import run_orchestrator
 
 router = APIRouter(prefix="/risks", tags=["Risks"])
-
-
-class RiskEvent(BaseModel):
-    supplier_name: str
-    supplier_id: str | None = None
-    headline: str
-    risk_score: int
-    source_url: str | None = None
-
-
-class MitigationResponse(BaseModel):
-    supplier_name: str
-    risk_score: int
-    vector_context: str
-    graph_context: list[str]
-    final_plan: str
 
 
 @router.post("/analyze", response_model=MitigationResponse)
