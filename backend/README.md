@@ -32,14 +32,20 @@ backend/
     │   ├── dashboard/                      # Dashboard aggregate endpoints
     │   └── agents/                         # Agent trigger endpoints (async)
     ├── orchestration/
-    │   ├── mitigation_graph.py             # LangGraph StateGraph — 3-node mitigation pipeline
-    │   ├── agent_router.py                 # (empty) — should call run_orchestrator on escalation
-    │   └── message_bus.py                  # (empty) — inter-agent event bus
+    │   └── mitigation_graph.py             # LangGraph StateGraph — 3-node mitigation pipeline
+    ├── domains/
+    │   ├── analysis/
+    │   │   └── models/                     # Analysis-specific Pydantic schemas
+    │   ├── intelligence/
+    │   │   ├── classifiers.py              # Risk classification by category
+    │   │   ├── processors/                 # Intelligence data processing
+    │   │   └── scrapers/                   # Intelligence source scraping
+    │   └── planning/
+    │       ├── graph/                      # Supply chain graph traversal
+    │       └── optimization/               # Supplier selection optimization
     ├── services/
-    │   ├── audit.py                        # Audit log service
-    │   ├── erp.py                          # ERP integration stub
-    │   └── notifications.py               # Notification dispatch stub
-    ├── workers/                            # Background task workers
+    │   ├── audit_service.py                # Audit log service
+    │   └── app_dependencies.py             # ChromaDB & Neo4j DI
     └── app_config.py                       # Settings via pydantic-settings
 ```
 
@@ -53,12 +59,12 @@ Three-node linear graph invoked when a high-risk event is detected:
 retrieve_rag_context   →   query_supplier_graph   →   generate_mitigation   →   END
         │                           │                           │
    ChromaDB query             Neo4j Cypher               LLM synthesis
-   (STUB → TODO)             (STUB → TODO)               (STUB → TODO)
+    (live call)               (live call)                 (OpenAI GPT)
 ```
 
 `run_orchestrator(risk_event)` is the single public entry point. Returns the full `AgentState`.
 
-**All three nodes are currently STUBS.** Swap the `# TODO` blocks for live ChromaDB, Neo4j, and OpenAI calls once docker-compose is running.
+**All three nodes make live service calls** — ChromaDB for semantic context, Neo4j Aura for supplier graph traversal, and OpenAI GPT for mitigation plan generation.
 
 ---
 
@@ -105,6 +111,12 @@ uvicorn main:app --reload --port 8001
 | `gateway/api/suppliers/supplier_router.py` | ✅ Production |
 | `gateway/api/dashboard/dashboard_router.py` | ✅ Production |
 | `gateway/api/agents/agent_router.py` | ✅ Production — background task dispatch |
-| `gateway/orchestration/mitigation_graph.py` | ⚠️ **STUB** — all 3 nodes return mock data |
-| `gateway/orchestration/agent_router.py` | ❌ Empty |
-| `gateway/orchestration/message_bus.py` | ❌ Empty |
+| `gateway/orchestration/mitigation_graph.py` | ✅ Production — live ChromaDB, Neo4j, and OpenAI calls |
+| `gateway/domains/intelligence/classifiers.py` | ✅ Production |
+| `gateway/domains/intelligence/processors/` | ✅ Production |
+| `gateway/domains/intelligence/scrapers/` | ✅ Production |
+| `gateway/domains/analysis/models/` | ✅ Production |
+| `gateway/domains/planning/graph/` | ✅ Production |
+| `gateway/domains/planning/optimization/` | ✅ Production |
+| `gateway/services/audit_service.py` | ✅ Production |
+| `gateway/app_dependencies.py` | ✅ Production |
