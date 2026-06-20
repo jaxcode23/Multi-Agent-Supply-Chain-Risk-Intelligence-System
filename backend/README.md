@@ -17,36 +17,35 @@ backend/
 │   └── analysis/
 │       ├── analyzer.py                     # RAG analysis: ChromaDB query + Neo4j + risk score
 │       ├── planner.py                      # Supplier ID lookup + alternative planning
-│       ├── risk_scoring.py                 # Keyword-based risk scorer (0–100 scale)
-│       └── db.py                           # MongoDB news collection handle
+│       └── risk_scoring.py                 # Keyword-based risk scorer (0–100 scale)
 ├── core/
 │   ├── db/
-│   │   ├── mongo.py                        # MongoDB client
-│   │   └── neo4j.py                        # Neo4j driver + Cypher queries
-│   └── models/                             # (empty) — Pydantic request/response schemas missing
+│   │   ├── mongo_client.py                 # MongoDB client
+│   │   └── neo4j_client.py                 # Neo4j driver + Cypher queries
+│   └── models/                             # Pydantic request/response schemas
 └── gateway/
     ├── api/
     │   ├── api_router.py                   # Main router — mounts all sub-routers
     │   ├── health/                         # Health check endpoint
-    │   ├── risks/                          # Risk event endpoints (not yet wired to orchestrator)
-    │   ├── suppliers/                      # Supplier CRUD endpoints
+    │   ├── risks/                          # Risk event endpoints (wired to orchestrator)
+    │   ├── suppliers/                      # Supplier lookup endpoints
     │   ├── dashboard/                      # Dashboard aggregate endpoints
-    │   ├── auth/                           # Authentication endpoints
-    │   └── agents/                         # Agent trigger endpoints
+    │   └── agents/                         # Agent trigger endpoints (async)
     ├── orchestration/
-    │   ├── langgraph.py                    # LangGraph StateGraph — 3-node mitigation pipeline
+    │   ├── mitigation_graph.py             # LangGraph StateGraph — 3-node mitigation pipeline
     │   ├── agent_router.py                 # (empty) — should call run_orchestrator on escalation
     │   └── message_bus.py                  # (empty) — inter-agent event bus
     ├── services/
     │   ├── audit.py                        # Audit log service
     │   ├── erp.py                          # ERP integration stub
     │   └── notifications.py               # Notification dispatch stub
-    └── workers/                            # Background task workers
+    ├── workers/                            # Background task workers
+    └── app_config.py                       # Settings via pydantic-settings
 ```
 
 ---
 
-## LangGraph Pipeline (`gateway/orchestration/langgraph.py`)
+## LangGraph Pipeline (`gateway/orchestration/mitigation_graph.py`)
 
 Three-node linear graph invoked when a high-risk event is detected:
 
@@ -72,7 +71,7 @@ retrieve_rag_context   →   query_supplier_graph   →   generate_mitigation   
 
 ---
 
-## Neo4j Graph Queries (`core/db/neo4j.py`)
+## Neo4j Graph Queries (`core/db/neo4j_client.py`)
 
 | Function | Cypher |
 |---|---|
@@ -96,13 +95,16 @@ uvicorn main:app --reload --port 8001
 | File | Status |
 |---|---|
 | `main.py` | ✅ Production |
-| `core/db/neo4j.py` | ✅ Production — requires Neo4j running |
+| `core/db/neo4j_client.py` | ✅ Production — requires Neo4j running |
+| `core/db/mongo_client.py` | ✅ Production — requires MongoDB running |
+| `core/models/` | ✅ Production — all Pydantic schemas defined |
 | `agents/analysis/analyzer.py` | ✅ Production — ChromaDB query silently falls back if unavailable |
 | `agents/analysis/risk_scoring.py` | ✅ Production |
 | `agents/analysis/planner.py` | ✅ Production |
-| `gateway/orchestration/langgraph.py` | ⚠️ **STUB** — all 3 nodes return mock data |
+| `gateway/api/risks/risk_router.py` | ✅ Production — wired to orchestrator |
+| `gateway/api/suppliers/supplier_router.py` | ✅ Production |
+| `gateway/api/dashboard/dashboard_router.py` | ✅ Production |
+| `gateway/api/agents/agent_router.py` | ✅ Production — background task dispatch |
+| `gateway/orchestration/mitigation_graph.py` | ⚠️ **STUB** — all 3 nodes return mock data |
 | `gateway/orchestration/agent_router.py` | ❌ Empty |
 | `gateway/orchestration/message_bus.py` | ❌ Empty |
-| `core/models/` | ❌ Empty — Pydantic schemas not yet defined |
-| `agents/intelligence/` | ❌ Empty — second agent not yet built |
-| `gateway/api/risks/` etc. | ❓ Exists but content not verified |
