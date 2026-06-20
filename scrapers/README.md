@@ -62,7 +62,7 @@ scrapers/
 
 | File | Status |
 |---|---|
-| `cmd/api/main.go` | ✅ Production — **seed targets are hardcoded (TODO: config-driven)** |
+| `cmd/api/main.go` | ✅ Production — seeds configurable via `SCRAPE_SEEDS` env var |
 | `internal/service/grpc_client.go` | ✅ Production |
 | `internal/service/colly_engine.go` | ✅ Production |
 | `internal/service/worker_service.go` | ✅ Production |
@@ -74,7 +74,7 @@ scrapers/
 
 ## Proto Code Generation
 
-The generated `pkg/pb/` package does not exist yet. Generate it with:
+The generated `pkg/pb/` package is checked in. To regenerate:
 
 ```bash
 # From repo root

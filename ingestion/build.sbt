@@ -46,7 +46,13 @@ libraryDependencies ++= Seq(
   // ── Structured logging backend ────────────────────────────────────────────
   "ch.qos.logback"                % "logback-classic"          % "1.4.11",
   "net.logstash.logback"          % "logstash-logback-encoder" % "7.4",
+
+  // ── ZIO Test ────────────────────────────────────────────────────────────────
+  "dev.zio" %% "zio-test"     % ZioVersion % Test,
+  "dev.zio" %% "zio-test-sbt" % ZioVersion % Test,
 )
+
+testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")
 
 // ScalaPB: generate both plain case classes AND the ZIO gRPC service traits
 import scalapb.zio_grpc.ZioCodeGenerator

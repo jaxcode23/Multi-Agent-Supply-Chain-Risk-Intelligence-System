@@ -1,26 +1,10 @@
 from fastapi import APIRouter, Query
-from pydantic import BaseModel
+from core.models import DashboardSummary, RecentRiskItem
 from core.db.mongo_client import get_mongo_client
 from gateway.app_config import get_settings
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 _settings = get_settings()
-
-
-class DashboardSummary(BaseModel):
-    total_documents: int
-    escalated_count: int
-    processed_count: int
-    high_priority_count: int
-    risk_score_avg: float
-
-
-class RecentRiskItem(BaseModel):
-    title: str
-    risk_score: int
-    priority: str
-    source_url: str | None
-    published_at: str | None
 
 
 @router.get("/summary", response_model=DashboardSummary)

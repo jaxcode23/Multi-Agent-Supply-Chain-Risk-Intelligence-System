@@ -103,5 +103,5 @@ cargo run
 ## 🎯 Project Roadmap
 - [x] **Phase 1**: Initial Scaffolding (frontend, backend, runner, ingestion).
 - [x] **Phase 2**: Core Components & Scrapers Integration.
-- [ ] **Phase 3**: Tech Debt & Refactoring (Resolve 2,100+ TODOs/FIXMEs).
+- [ ] **Phase 3**: Tech Debt & Refactoring (In progress — completing sub-phases 3.1–3.6).
 - [ ] **Phase 4**: Full-Stack Polish & Production Deployment.

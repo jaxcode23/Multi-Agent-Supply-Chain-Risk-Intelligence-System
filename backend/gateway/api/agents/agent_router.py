@@ -1,24 +1,10 @@
 from fastapi import APIRouter, HTTPException, BackgroundTasks, Body
-from pydantic import BaseModel
+from core.models import AgentTriggerRequest, AgentTriggerResponse
 from gateway.orchestration.mitigation_graph import run_orchestrator
 import logging
 
 router = APIRouter(prefix="/agents", tags=["Agents"])
 logger = logging.getLogger(__name__)
-
-
-class AgentTriggerRequest(BaseModel):
-    supplier_name: str
-    supplier_id: str | None = None
-    headline: str
-    risk_score: int
-    source_url: str | None = None
-
-
-class AgentTriggerResponse(BaseModel):
-    status: str
-    supplier_name: str
-    message: str
 
 
 def _run_in_background(event: dict):

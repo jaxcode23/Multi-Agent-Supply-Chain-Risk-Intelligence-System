@@ -1,22 +1,9 @@
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel
 from typing import Any
+from core.models import SupplierResponse, AlternativesResponse
 from core.db.neo4j_client import get_supplier_by_name, find_alternative_suppliers
 
 router = APIRouter(prefix="/suppliers", tags=["Suppliers"])
-
-
-class SupplierResponse(BaseModel):
-    id: str
-    name: str
-    region: str | None = None
-    status: str | None = None
-    reliability_score: float | None = None
-
-
-class AlternativesResponse(BaseModel):
-    supplier_name: str
-    alternatives: list[dict[str, Any]]
 
 
 @router.get("/{name}", response_model=SupplierResponse)
