@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { api } from "@/lib/api";
 
 const logs = [
   "Starting ingestion nodes...",
@@ -73,7 +74,7 @@ export default function DevDocsPage() {
     };
   }, []);
 
-  const simulateAPI = (endpoint: string) => {
+  const simulateAPI = async (endpoint: string) => {
     setApiOutputs(prev => [
       ...prev,
       <div key={`client-${Date.now()}`} className="flex items-center gap-2 mb-2">
@@ -82,21 +83,36 @@ export default function DevDocsPage() {
       </div>
     ]);
     
-    const timerId = setTimeout(() => {
-      const response = endpoint === '/risk/analyze' 
-        ? `{ "status": "secure", "threat_score": 0.02, "anomalies": [], "timestamp": "${new Date().toISOString()}" }`
-        : `{ "results": [ { "id": "mem_291", "similarity": 0.982 }, { "id": "mem_102", "similarity": 0.841 } ], "latency_ms": 14 }`;
+    try {
+      let response: string;
+      if (endpoint === '/risk/analyze') {
+        const res = await api.analyzeRisk({
+          supplier_name: "test_supplier",
+          headline: "Live API test from DevDocs",
+          risk_score: 0.65,
+        });
+        response = JSON.stringify(res, null, 2);
+      } else {
+        const res = await api.health();
+        response = JSON.stringify(res, null, 2);
+      }
       
       setApiOutputs(prev => [
         ...prev,
         <div key={`server-${Date.now()}`} className="flex items-center gap-2 mb-2">
           <span className="text-primary">[SERVER]</span> 
-          <span className="devdocs-terminal-cursor">{response}</span>
+          <span className="devdocs-terminal-cursor whitespace-pre">{response}</span>
         </div>
       ]);
-    }, 800);
-
-    responseTimersRef.current.push(timerId);
+    } catch (err) {
+      setApiOutputs(prev => [
+        ...prev,
+        <div key={`error-${Date.now()}`} className="flex items-center gap-2 mb-2">
+          <span className="text-error">[ERROR]</span> 
+          <span className="text-error">{(err as Error).message}</span>
+        </div>
+      ]);
+    }
   };
 
   return (

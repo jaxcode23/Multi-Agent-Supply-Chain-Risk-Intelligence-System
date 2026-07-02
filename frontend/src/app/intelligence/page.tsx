@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { api, type DashboardSummary } from "@/lib/api";
 
 // Custom premium SVG Icons for offline resilience and absolute positioning control
 const SearchIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
@@ -92,6 +93,9 @@ export default function TacticalOperationsConsole() {
   const [latency, setLatency] = useState(12);
   const [ingestion, setIngestion] = useState(4.2);
 
+  // Fetched dashboard data
+  const [summary, setSummary] = useState<DashboardSummary | null>(null);
+
   // Interactive input console state
   const [terminalInputValue, setTerminalInputValue] = useState("");
   const [terminalLogs, setTerminalLogs] = useState<TerminalLog[]>([
@@ -167,6 +171,11 @@ export default function TacticalOperationsConsole() {
     return () => clearInterval(interval);
   }, []);
 
+  // Fetch dashboard summary data
+  useEffect(() => {
+    api.dashboardSummary().then(setSummary).catch(() => {});
+  }, []);
+
   // Placeholder phrase cycling
   useEffect(() => {
     const phraseInterval = setInterval(() => {
@@ -184,7 +193,7 @@ export default function TacticalOperationsConsole() {
   }, [terminalLogs]);
 
   // Terminal submission handler
-  const handleTerminalSubmit = (e: React.FormEvent) => {
+  const handleTerminalSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const command = terminalInputValue.trim();
     if (!command) return;
@@ -209,14 +218,18 @@ export default function TacticalOperationsConsole() {
       });
     } else if (lowerCmd.startsWith("scan")) {
       newLogs.push({ type: "output", text: "INITIALIZING SECTOR RISK SCAN..." });
-      newLogs.push({
-        type: "output",
-        text: "SCANNING INTEGRITY NODES... [||||||||||||||||||||] 100% COMPLETE",
-      });
-      newLogs.push({
-        type: "output",
-        text: "ALERT RE-VERIFIED: GEO_BLOCK_04 congestion at Strait of Hormuz. Deviation delta +14%.",
-      });
+      setTerminalLogs(newLogs);
+      setTerminalInputValue("");
+      const res = await api.triggerAgent({
+        supplier_name: command.slice(5).trim() || "unknown",
+        headline: "Terminal scan command",
+        risk_score: 0.5,
+      }).catch(() => null);
+      setTerminalLogs((prev) => [
+        ...prev,
+        { type: "output", text: res ? `AGENT RESPONSE: ${res.status} — ${res.message}` : "SCAN COMPLETE (backend unreachable)" },
+      ]);
+      return;
     } else if (lowerCmd.startsWith("decrypt")) {
       newLogs.push({ type: "output", text: "DECRYPTING SECTOR-7G SECURE PROTOCOLS..." });
       newLogs.push({ type: "output", text: "PARSING ENCRYPTED VECTOR DATA TRACES... [SUCCESS]" });
@@ -410,7 +423,9 @@ export default function TacticalOperationsConsole() {
             </div>
             <div className="ml-auto">
               <span className="font-label-sm text-label-sm text-error uppercase border border-error/50 px-2 py-0.5 select-none animate-pulse">
-                [STATUS: THREAT_DETECTED]
+                {summary && summary.escalated_count > 0
+                  ? `[ESCALATED: ${summary.escalated_count}]`
+                  : "[STATUS: THREAT_DETECTED]"}
               </span>
             </div>
           </div>
@@ -439,11 +454,19 @@ export default function TacticalOperationsConsole() {
                 <div className="mt-4 flex justify-between items-center">
                   <span className="font-code-md text-[10px] text-on-surface-variant opacity-60">ID: 0x9AF21</span>
                   <button
-                    onClick={() => {
+                    onClick={async () => {
                       setTerminalLogs((prev) => [
                         ...prev,
                         { type: "output", text: "> SPANNING COGNITIVE MITIGATION AGENT TO GEO_BLOCK_04..." },
-                        { type: "output", text: "> ROUTING STRATEGIES INJECTED TO SHIP CAPTAINS. SECURE." },
+                      ]);
+                      const res = await api.triggerAgent({
+                        supplier_name: "geo_block_04",
+                        headline: "Strait of Hormuz congestion alert",
+                        risk_score: 0.75,
+                      }).catch(() => null);
+                      setTerminalLogs((prev) => [
+                        ...prev,
+                        { type: "output", text: res ? `> ${res.status}: ${res.message}` : "> AGENT DEPLOYED (backend unreachable)" },
                       ]);
                     }}
                     className="text-primary font-label-sm text-[10px] uppercase underline hover:no-underline cursor-pointer"

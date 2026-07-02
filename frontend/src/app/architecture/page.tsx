@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { api, type HealthResponse } from "@/lib/api";
 
 const iconPaths = {
   chevronDown: <path d="m6 9 6 6 6-6" />,
@@ -84,6 +85,11 @@ const codeSamples = {
 export default function ArchitecturePage() {
   const [failoverState, setFailoverState] = useState<"nominal" | "failing" | "recovered">("nominal");
   const recoveryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [health, setHealth] = useState<HealthResponse | null>(null);
+
+  useEffect(() => {
+    api.health().then(setHealth).catch(() => {});
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -126,7 +132,10 @@ export default function ArchitecturePage() {
 <main className="pt-32 px-4 md:px-8 max-w-7xl mx-auto pb-24">
 {/* Header */}
 <header className="mb-16 border-l-4 border-primary pl-6">
-<div className="font-label-sm text-label-sm text-primary mb-2">[SYSTEM_VIEW: ARCHITECTURE_V4]</div>
+<div className="font-label-sm text-label-sm text-primary mb-2">
+  [SYSTEM_VIEW: ARCHITECTURE_V4]
+  {health && <span className="ml-4 text-on-surface-variant">| SERVICE: {health.service} — <span className={health.status === "healthy" ? "text-primary" : "text-error"}>{health.status.toUpperCase()}</span></span>}
+</div>
 <h1 className="font-headline-lg text-headline-lg uppercase mb-4">Advanced Infrastructure</h1>
 <p className="font-body-lg text-body-lg text-on-surface-variant max-w-2xl">
                 A resilient, distributed orchestration layer designed for sub-millisecond AI inference and massive-scale data ingestion.
