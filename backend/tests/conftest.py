@@ -3,7 +3,7 @@ import pytest
 
 
 os.environ.setdefault("MONGO_URI", "mongodb://localhost:27017")
-os.environ.setdefault("DB_NAME", "test_db")
+os.environ.setdefault("MONGO_DB_NAME", "test_db")
 os.environ.setdefault("NEO4J_URI", "bolt://localhost:7687")
 os.environ.setdefault("NEO4J_USER", "neo4j")
 os.environ.setdefault("NEO4J_PASSWORD", "password")

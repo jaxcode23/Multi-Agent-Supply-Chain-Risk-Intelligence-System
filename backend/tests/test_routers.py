@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 @pytest.fixture(autouse=True)
 def _mock_env(monkeypatch):
     monkeypatch.setenv("MONGO_URI", "mongodb://localhost:27017")
-    monkeypatch.setenv("DB_NAME", "test_db")
+    monkeypatch.setenv("MONGO_DB_NAME", "test_db")
     monkeypatch.setenv("NEO4J_URI", "bolt://localhost:7687")
     monkeypatch.setenv("NEO4J_USER", "neo4j")
     monkeypatch.setenv("NEO4J_PASSWORD", "password")
