@@ -39,24 +39,23 @@ func (c *Controller) ProcessScrapeRequest(ctx context.Context, req ScrapeRequest
 
 	c.logger.Info("processing scrape request", "url", req.URL)
 
-	results := make(chan service.ScrapeResult, len(req.Selectors))
-	go func() {
-		c.scraperService.StartHopping(ctx, req.URL, req.Selectors)
-		close(results)
-	}()
+	c.scraperService.StartHopping(ctx, req.URL, req.Selectors)
 
 	var content = make(map[string]string)
-	for res := range results {
-		if res.Error != nil {
-			c.logger.Warn("scrape failed for selector", "selector", res.Metadata["section"], "err", res.Error)
-			content[res.Metadata["section"]] = ""
-		} else {
-			content[res.Metadata["section"]] = res.Content
+	for range req.Selectors {
+		select {
+		case res := <-c.scraperService.Results:
+			if res.Error != nil {
+				c.logger.Warn("scrape failed", "section", res.Metadata["section"], "err", res.Error)
+				content[res.Metadata["section"]] = ""
+			} else {
+				content[res.Metadata["section"]] = res.Content
+			}
+		case <-ctx.Done():
+			c.logger.Warn("context cancelled while collecting results")
+			return ScrapeResponse{URL: req.URL, Content: content}
 		}
 	}
 
-	return ScrapeResponse{
-		URL:     req.URL,
-		Content: content,
-	}
+	return ScrapeResponse{URL: req.URL, Content: content}
 }
