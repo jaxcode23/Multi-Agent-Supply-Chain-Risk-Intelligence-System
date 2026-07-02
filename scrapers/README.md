@@ -12,18 +12,19 @@ Scrapes public web feeds and supplier news pages, then streams payloads to the S
 scrapers/
 ├── cmd/api/main.go                     # Entrypoint — signal handling, pool init, gRPC wiring
 ├── internal/
+│   ├── api/http_server.go              # HTTP server with /health and /ready endpoints
 │   ├── models/task.go                  # ScrapeTask and ScrapeResult data types
 │   ├── service/
-│   │   ├── colly_engine.go             # Colly-based HTTP scraping engine
-│   │   ├── worker_service.go           # SectionWorker + ScraperService orchestrator
-│   │   ├── grpc_client.go              # gRPC client — Connect, StartStream, retry logic
-│   │   └── stream_service.go           # SUPERSEDED by grpc_client.go — kept for reference
+│   │   ├── scrape_engine.go            # Colly-based HTTP scraping engine
+│   │   ├── scraper_service.go          # SectionWorker + ScraperService orchestrator
+│   │   └── grpc_client.go             # gRPC client — Connect, StartStream, retry logic
 │   └── utils/
-│       └── limiter.go                  # Per-domain rate limiter + User-Agent rotator
-└── pkg/
-    └── workerpool/
-        ├── pool.go                     # Generic goroutine pool (Submit, Stop, WaitGroup)
-        └── pool_test.go                # Unit tests for pool concurrency
+│       └── rate_limiter.go             # Per-domain rate limiter + User-Agent rotator
+├── pkg/
+│   ├── pb/                             # Generated protobuf + gRPC stubs
+│   └── workerpool/
+│       ├── pool.go                     # Generic goroutine pool (Submit, Stop, WaitGroup)
+│       └── pool_test.go                # Unit tests for pool concurrency
 ```
 
 ---
@@ -63,12 +64,12 @@ scrapers/
 | File | Status |
 |---|---|
 | `cmd/api/main.go` | ✅ Production — seeds configurable via `SCRAPE_SEEDS` env var |
+| `internal/api/http_server.go` | ✅ Production — `/health` and `/ready` endpoints |
 | `internal/service/grpc_client.go` | ✅ Production |
-| `internal/service/colly_engine.go` | ✅ Production |
-| `internal/service/worker_service.go` | ✅ Production |
-| `internal/service/stream_service.go` | ⚠️ Superseded — use `grpc_client.go` |
+| `internal/service/scrape_engine.go` | ✅ Production |
+| `internal/service/scraper_service.go` | ✅ Production |
+| `internal/utils/rate_limiter.go` | ✅ Production |
 | `pkg/workerpool/pool.go` | ✅ Production |
-| `internal/api/`, `internal/controller/` | ❌ Empty — HTTP health-check server not yet built |
 
 ---
 

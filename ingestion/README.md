@@ -12,21 +12,15 @@ Receives a high-volume gRPC stream of scraped payloads from the Go Gateway, norm
 ingestion/
 ├── build.sbt                                       # SBT build — ZIO, ScalaPB, gRPC, zio-logging
 ├── src/main/
+│   ├── protobuf/scrapper.proto                     # Proto definition for sbt-protoc generation
 │   ├── scala/
 │   │   ├── Main.scala                              # Entrypoint — ZLayer wiring + gRPC server bind
-│   │   ├── config/                                 # (empty) — config loading not yet implemented
-│   │   ├── db/
-│   │   │   └── ChromaSink.scala                    # ChromaDBClient trait + Live/Stub impls
-│   │   ├── domain/
-│   │   │   └── Model.scala                         # RawScraperPayload, NormalizedRiskEvent case classes
-│   │   ├── models/                                 # (empty)
-│   │   ├── service/
-│   │   │   ├── IngestionService.scala              # ZIO gRPC ScrapperService implementation
-│   │   │   └── ScrapperServiceHandler.scala        # LEGACY — kept for reference, superseded by IngestionService
-│   │   ├── streams/
-│   │   │   └── RiskIntelPipeline.scala             # Text normalisation + sliding-window chunking
-│   │   └── transforms/
-│   │       └── DataCleaner.scala                   # Akka Streams normalisation flow (legacy)
+│   │   ├── config/AppConfig.scala                  # Env-var-based config loading
+│   │   ├── db/ChromaDBClient.scala                 # ChromaDBClient trait + Live/Stub impls
+│   │   ├── domain/Model.scala                      # RawScraperPayload, NormalizedRiskEvent case classes
+│   │   ├── models/IntelDocument.scala              # IntelDocument and ChunkRecord case classes
+│   │   ├── service/IngestionService.scala          # ZIO gRPC ScrapperService implementation
+│   │   └── streams/RiskIntelPipeline.scala         # Text normalisation + sliding-window chunking
 │   └── resources/
 │       ├── application.conf                        # Akka + broker config
 │       └── logback.xml                             # JSON structured logging via logstash-logback-encoder
@@ -48,7 +42,7 @@ ingestion/
 
 ---
 
-## ChromaDB Client (`db/ChromaSink.scala`)
+## ChromaDB Client (`db/ChromaDBClient.scala`)
 
 | Layer | Description |
 |---|---|
@@ -96,10 +90,9 @@ ZIO's `ZIO.log*` calls are bridged to SLF4J via `zio-logging-slf4j`. Logback out
 |---|---|
 | `Main.scala` | ✅ Production |
 | `service/IngestionService.scala` | ✅ Production |
-| `db/ChromaSink.scala` — `ChromaDBClientLive` | ✅ Production |
-| `db/ChromaSink.scala` — `ChromaDBClientStub` | 🔵 Intentional stub (local dev) |
+| `db/ChromaDBClient.scala` — `ChromaDBClientLive` | ✅ Production |
+| `db/ChromaDBClient.scala` — `ChromaDBClientStub` | 🔵 Intentional stub (local dev) |
+| `config/AppConfig.scala` | ✅ Production |
+| `domain/Model.scala` | ✅ Production |
+| `models/IntelDocument.scala` | ✅ Production |
 | `streams/RiskIntelPipeline.scala` | ✅ Production |
-| `transforms/DataCleaner.scala` | ⚠️ Akka legacy — not wired into main pipeline |
-| `service/ScrapperServiceHandler.scala` | ⚠️ Superseded by `IngestionService.scala` |
-| `config/` | ❌ Empty |
-| `models/` | ❌ Empty |
