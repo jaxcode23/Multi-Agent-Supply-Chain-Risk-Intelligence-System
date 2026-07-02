@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { api, type DashboardSummary, type RecentRiskItem } from "@/lib/api";
 
 // Custom offline-resilient high-fidelity SVG Icons
 const TerminalIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
@@ -81,6 +82,10 @@ export default function LandingPage() {
   const [uptimePercent, setUptimePercent] = useState(99.998);
   const [throughputRate, setThroughputRate] = useState(4.2);
 
+  // Fetched dashboard data
+  const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  const [recentRisks, setRecentRisks] = useState<RecentRiskItem[]>([]);
+
   // References for data packet simulation
   const heroVizRef = useRef<HTMLDivElement>(null);
   const pipelineRef = useRef<HTMLDivElement>(null);
@@ -130,6 +135,23 @@ export default function LandingPage() {
     }, 4500);
 
     return () => clearInterval(teleInterval);
+  }, []);
+
+  // Fetch dashboard data from backend
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [summaryData, risks] = await Promise.all([
+          api.dashboardSummary(),
+          api.dashboardRecent(),
+        ]);
+        setSummary(summaryData);
+        setRecentRisks(risks);
+      } catch {
+        // silently fall back to mock data if backend is down
+      }
+    }
+    fetchData();
   }, []);
 
   // Scroll reveal with IntersectionObserver
@@ -702,7 +724,7 @@ export default function LandingPage() {
                 Current Threat Level
               </div>
               <div className="font-headline-md text-headline-md terminal-glow text-primary font-bold">
-                MODERATE_0.44
+                {summary ? `MODERATE_${summary.risk_score_avg.toFixed(2)}` : "MODERATE_0.44"}
               </div>
             </div>
           </div>
@@ -719,86 +741,109 @@ export default function LandingPage() {
               
               {/* Marquee vertical scroll using simple Tailwind styling */}
               <div className="absolute inset-0 flex flex-col justify-start overflow-y-auto overflow-x-hidden no-scrollbar py-6">
-                <div className="flex flex-col gap-6 px-6 animate-[scrollVertical_35s_linear_infinite] hover:[animation-play-state:paused]">
-                  {/* Repeated twice to render seamless scroll */}
-                  {[1, 2].map((loopIdx) => (
-                    <div key={loopIdx} className="flex flex-col gap-6">
-                      <div className="flex items-start justify-between border-b border-outline-variant/30 pb-4">
+                <div className="flex flex-col gap-6 px-6">
+                  {recentRisks.length > 0 ? (
+                    recentRisks.map((risk, idx) => (
+                      <div key={idx} className="flex items-start justify-between border-b border-outline-variant/30 pb-4">
                         <div className="flex items-center gap-4">
-                          <WarningIcon className="text-primary node-pulse w-5 h-5 flex-shrink-0" />
+                          {risk.priority === "high" ? (
+                            <GavelIcon className="text-error w-5 h-5 flex-shrink-0" />
+                          ) : (
+                            <WarningIcon className="text-primary node-pulse w-5 h-5 flex-shrink-0" />
+                          )}
                           <div>
                             <div className="font-code-md text-label-sm font-bold uppercase text-white">
-                              Ports Delayed: Singapore
+                              {risk.title}
                             </div>
                             <div className="text-[11px] text-on-surface-variant">
-                              Estimated disruption: 14.5 hours | Impact Score: 0.62
+                              Risk Score: {risk.risk_score} | Priority: {risk.priority}
                             </div>
                           </div>
                         </div>
-                        <span className="font-code-md text-label-sm text-primary font-bold text-xs">JUST NOW</span>
+                        <span className="font-code-md text-label-sm text-primary font-bold text-xs">{risk.published_at ?? ""}</span>
                       </div>
+                    ))
+                  ) : (
+                    /* Fallback mock feed when backend is unreachable */
+                    [1, 2].map((loopIdx) => (
+                      <div key={loopIdx} className="flex flex-col gap-6">
+                        <div className="flex items-start justify-between border-b border-outline-variant/30 pb-4">
+                          <div className="flex items-center gap-4">
+                            <WarningIcon className="text-primary node-pulse w-5 h-5 flex-shrink-0" />
+                            <div>
+                              <div className="font-code-md text-label-sm font-bold uppercase text-white">
+                                Ports Delayed: Singapore
+                              </div>
+                              <div className="text-[11px] text-on-surface-variant">
+                                Estimated disruption: 14.5 hours | Impact Score: 0.62
+                              </div>
+                            </div>
+                          </div>
+                          <span className="font-code-md text-label-sm text-primary font-bold text-xs">JUST NOW</span>
+                        </div>
 
-                      <div className="flex items-start justify-between border-b border-outline-variant/30 pb-4">
-                        <div className="flex items-center gap-4">
-                          <GavelIcon className="text-error w-5 h-5 flex-shrink-0" />
-                          <div>
-                            <div className="font-code-md text-label-sm font-bold uppercase text-white">
-                              Sanctions: Route-X Extended
-                            </div>
-                            <div className="text-[11px] text-on-surface-variant">
-                              Legal node update: Jurisdiction 04-A | Affecting 12 carriers
+                        <div className="flex items-start justify-between border-b border-outline-variant/30 pb-4">
+                          <div className="flex items-center gap-4">
+                            <GavelIcon className="text-error w-5 h-5 flex-shrink-0" />
+                            <div>
+                              <div className="font-code-md text-label-sm font-bold uppercase text-white">
+                                Sanctions: Route-X Extended
+                              </div>
+                              <div className="text-[11px] text-on-surface-variant">
+                                Legal node update: Jurisdiction 04-A | Affecting 12 carriers
+                              </div>
                             </div>
                           </div>
+                          <span className="font-code-md text-label-sm opacity-50 text-xs">4m AGO</span>
                         </div>
-                        <span className="font-code-md text-label-sm opacity-50 text-xs">4m AGO</span>
-                      </div>
 
-                      <div className="flex items-start justify-between border-b border-outline-variant/30 pb-4">
-                        <div className="flex items-center gap-4">
-                          <AnalyticsIcon className="text-primary w-5 h-5 flex-shrink-0" />
-                          <div>
-                            <div className="font-code-md text-label-sm font-bold uppercase text-white">
-                              Supplier Instability: North-West Node
-                            </div>
-                            <div className="text-[11px] text-on-surface-variant">
-                              Liquidity warning detected via News_Intel_B agent
+                        <div className="flex items-start justify-between border-b border-outline-variant/30 pb-4">
+                          <div className="flex items-center gap-4">
+                            <AnalyticsIcon className="text-primary w-5 h-5 flex-shrink-0" />
+                            <div>
+                              <div className="font-code-md text-label-sm font-bold uppercase text-white">
+                                Supplier Instability: North-West Node
+                              </div>
+                              <div className="text-[11px] text-on-surface-variant">
+                                Liquidity warning detected via News_Intel_B agent
+                              </div>
                             </div>
                           </div>
+                          <span className="font-code-md text-label-sm opacity-50 text-xs">12m AGO</span>
                         </div>
-                        <span className="font-code-md text-label-sm opacity-50 text-xs">12m AGO</span>
-                      </div>
 
-                      <div className="flex items-start justify-between border-b border-outline-variant/30 pb-4">
-                        <div className="flex items-center gap-4">
-                          <SailingIcon className="text-primary w-5 h-5 flex-shrink-0" />
-                          <div>
-                            <div className="font-code-md text-label-sm font-bold uppercase text-white">
-                              Suez Transit: Congestion Detected
-                            </div>
-                            <div className="text-[11px] text-on-surface-variant">
-                              Visual intelligence confirming 18 vessel backlog
+                        <div className="flex items-start justify-between border-b border-outline-variant/30 pb-4">
+                          <div className="flex items-center gap-4">
+                            <SailingIcon className="text-primary w-5 h-5 flex-shrink-0" />
+                            <div>
+                              <div className="font-code-md text-label-sm font-bold uppercase text-white">
+                                Suez Transit: Congestion Detected
+                              </div>
+                              <div className="text-[11px] text-on-surface-variant">
+                                Visual intelligence confirming 18 vessel backlog
+                              </div>
                             </div>
                           </div>
+                          <span className="font-code-md text-label-sm opacity-50 text-xs">21m AGO</span>
                         </div>
-                        <span className="font-code-md text-label-sm opacity-50 text-xs">21m AGO</span>
-                      </div>
 
-                      <div className="flex items-start justify-between border-b border-outline-variant/30 pb-4">
-                        <div className="flex items-center gap-4">
-                          <HubIcon className="text-primary w-5 h-5 flex-shrink-0" />
-                          <div>
-                            <div className="font-code-md text-label-sm font-bold uppercase text-white">
-                              Inventory Re-balance: EU-WEST-1
-                            </div>
-                            <div className="text-[11px] text-on-surface-variant">
-                              Mitigation agent auto-executing stock relocation
+                        <div className="flex items-start justify-between border-b border-outline-variant/30 pb-4">
+                          <div className="flex items-center gap-4">
+                            <HubIcon className="text-primary w-5 h-5 flex-shrink-0" />
+                            <div>
+                              <div className="font-code-md text-label-sm font-bold uppercase text-white">
+                                Inventory Re-balance: EU-WEST-1
+                              </div>
+                              <div className="text-[11px] text-on-surface-variant">
+                                Mitigation agent auto-executing stock relocation
+                              </div>
                             </div>
                           </div>
+                          <span className="font-code-md text-label-sm opacity-50 text-xs">45m AGO</span>
                         </div>
-                        <span className="font-code-md text-label-sm opacity-50 text-xs">45m AGO</span>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </div>
             </div>

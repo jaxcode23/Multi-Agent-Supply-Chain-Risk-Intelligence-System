@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { api, type SupplierResponse } from "@/lib/api";
 
 const iconPaths = {
   bolt: <path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z" />,
@@ -106,6 +108,12 @@ function SystemIcon({ name, className = "h-5 w-5" }: { name: SystemIconName; cla
 }
 
 export default function EcosystemPage() {
+  const [supplier, setSupplier] = useState<SupplierResponse | null>(null);
+
+  useEffect(() => {
+    api.suppliersByName("supplier_a").then(setSupplier).catch(() => {});
+  }, []);
+
   return (
     <div className="bg-background text-on-surface font-body-md overflow-x-hidden selection:bg-primary selection:text-on-primary">
 <div className="fixed inset-0 ecosystem-noise-overlay z-[100] pointer-events-none"></div>
@@ -312,9 +320,9 @@ export default function EcosystemPage() {
 <span className="text-on-surface-variant">DDOS_NORTH_SEA</span>
 <span className="text-error font-bold uppercase">Critical</span>
 </div>
-<div className="p-2 bg-surface-container-highest border-l-2 border-outline-variant flex items-center justify-between">
-<span className="text-on-surface-variant">GEO_DRIFT_SEA</span>
-<span className="text-on-surface-variant">Nominal</span>
+<div className={`p-2 border-l-2 flex items-center justify-between ${supplier ? 'bg-primary/5 border-primary' : 'bg-surface-container-higher border-outline-variant'}`}>
+<span className="text-on-surface-variant">{supplier ? supplier.name.toUpperCase() : 'GEO_DRIFT_SEA'}</span>
+<span className={supplier ? 'text-primary font-bold uppercase' : 'text-on-surface-variant'}>{supplier?.status ?? 'Nominal'}</span>
 </div>
 <div className="p-2 bg-surface-container-highest border-l-2 border-outline-variant flex items-center justify-between">
 <span className="text-on-surface-variant">ROUTE_LATENCY_SG</span>
