@@ -8,7 +8,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
-VENV_PYTHON = "/tmp/test-venv/bin/python"
+VENV_PYTHON = sys.executable
 results = []
 
 COMPONENTS = [

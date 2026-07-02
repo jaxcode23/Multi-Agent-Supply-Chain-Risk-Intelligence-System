@@ -38,7 +38,7 @@ final class ChromaDBClientLive(httpClient: Client, cfg: AppConfig) extends Chrom
 
     val body = ChromaUpsertRequest(
       ids = chunks.map { c =>
-        s"${c.metadata.getOrElse("source", "doc")}-${c.chunkIndex}-${java.lang.System.currentTimeMillis()}"
+        s"${c.metadata.getOrElse("source", "doc")}-${c.chunkIndex}-${java.util.UUID.randomUUID()}"
       }.toList,
       documents = chunks.map(_.content).toList,
       metadatas = chunks.map(_.metadata).toList
@@ -48,6 +48,7 @@ final class ChromaDBClientLive(httpClient: Client, cfg: AppConfig) extends Chrom
       .post(url = URL.decode(upsertUrl).getOrElse(URL.empty), body = Body.fromString(body.toJson))
       .addHeader(Header.ContentType(MediaType.application.json))
       .addHeader("X-Chroma-Token", cfg.chromaApiKey)
+      .addHeader("X-Chroma-Tenant", cfg.chromaTenant)
 
     ZIO.scoped {
       httpClient

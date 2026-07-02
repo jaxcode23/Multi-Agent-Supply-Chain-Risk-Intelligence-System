@@ -1,5 +1,6 @@
 import logging
 from intelligence_agent.db.mongo_service import get_escalated_documents, mark_as_processed
+from intelligence_agent.db.chroma_client import upsert_rag_chunks
 from intelligence_agent.intelligence_logic.llm_analyzer import (
     run_analysis_agent,
     run_context_prep_agent,
@@ -20,6 +21,7 @@ def run_analysis_pipeline() -> None:
 
     for doc in get_escalated_documents():
         mongo_id = doc["mongo_id"]
+        url = doc.get("url", "")
         title = doc.get("title", "unknown")
         logger.info(f"🔍 Processing: {title[:70]}")
 
@@ -30,6 +32,9 @@ def run_analysis_pipeline() -> None:
             continue
 
         rag_chunks = run_context_prep_agent(analysis)
+
+        if rag_chunks:
+            upsert_rag_chunks(mongo_id, rag_chunks, {"source": url, "title": title})
 
         mark_as_processed(mongo_id, {**analysis, "rag_chunks": rag_chunks or []})
         processed += 1

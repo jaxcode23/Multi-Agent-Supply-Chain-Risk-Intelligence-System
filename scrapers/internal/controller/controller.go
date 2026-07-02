@@ -4,6 +4,8 @@ import (
 	"context"
 	"log/slog"
 	"time"
+
+	"github.com/jaxcode23/scrapers/internal/service"
 )
 
 type ScrapeRequest struct {
@@ -18,14 +20,16 @@ type ScrapeResponse struct {
 }
 
 type Controller struct {
-	logger *slog.Logger
-	timeout time.Duration
+	scraperService *service.ScraperService
+	logger         *slog.Logger
+	timeout        time.Duration
 }
 
-func NewController(logger *slog.Logger) *Controller {
+func NewController(scraperService *service.ScraperService, logger *slog.Logger) *Controller {
 	return &Controller{
-		logger:  logger,
-		timeout: 30 * time.Second,
+		scraperService: scraperService,
+		logger:         logger,
+		timeout:        30 * time.Second,
 	}
 }
 
@@ -35,9 +39,20 @@ func (c *Controller) ProcessScrapeRequest(ctx context.Context, req ScrapeRequest
 
 	c.logger.Info("processing scrape request", "url", req.URL)
 
+	results := make(chan service.ScrapeResult, len(req.Selectors))
+	go func() {
+		c.scraperService.StartHopping(ctx, req.URL, req.Selectors)
+		close(results)
+	}()
+
 	var content = make(map[string]string)
-	for _, sel := range req.Selectors {
-		content[sel] = ""
+	for res := range results {
+		if res.Error != nil {
+			c.logger.Warn("scrape failed for selector", "selector", res.Metadata["section"], "err", res.Error)
+			content[res.Metadata["section"]] = ""
+		} else {
+			content[res.Metadata["section"]] = res.Content
+		}
 	}
 
 	return ScrapeResponse{

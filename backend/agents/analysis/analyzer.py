@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Optional, List, Dict, Any
 from .risk_scoring import calculate_risk_score
 from .planner import get_supplier_id_by_name, plan_alternatives
-from core.db.mongo_client import news_collection
+from core.db.mongo_client import get_news_collection
 
 # ChromaDB Initialization with error handling
 try:
@@ -54,7 +54,7 @@ def analyze_news(article: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     full_text: str = f"{headline} {content}"
 
     risk_score: int = calculate_risk_score(full_text)
-    supplier_id: Optional[int] = get_supplier_id_by_name(supplier_name)
+    supplier_id: Optional[str] = get_supplier_id_by_name(supplier_name)
 
     # RAG: Fetch relevant context from ChromaDB with defensive checks
     context_str: str = ""
