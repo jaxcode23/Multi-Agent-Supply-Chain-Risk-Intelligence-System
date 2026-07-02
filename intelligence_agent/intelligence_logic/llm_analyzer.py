@@ -2,7 +2,8 @@ import os
 import json
 import logging
 from tenacity import retry, stop_after_attempt, wait_exponential
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from dotenv import load_dotenv
 
 from intelligence_agent.intelligence_logic.risk_scorer import calculate_intel_risk
@@ -12,16 +13,13 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 _GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-if _GEMINI_API_KEY:
-    genai.configure(api_key=_GEMINI_API_KEY)
+_client = genai.Client(api_key=_GEMINI_API_KEY) if _GEMINI_API_KEY else None
 
-_MODEL = genai.GenerativeModel(
-    model_name="gemini-1.5-flash",
-    generation_config=genai.GenerationConfig(
-        response_mime_type="application/json",
-        temperature=0.1,
-        max_output_tokens=1024,
-    ),
+_MODEL_NAME = "gemini-1.5-flash"
+_GENERATION_CONFIG = types.GenerateContentConfig(
+    response_mime_type="application/json",
+    temperature=0.1,
+    max_output_tokens=1024,
 )
 
 _ANALYSIS_SYSTEM_PROMPT = """
@@ -66,7 +64,11 @@ into self-contained semantic text chunks optimised for vector database embedding
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10), reraise=True)
 def _call_llm(system_prompt: str, user_content: str) -> str:
-    response = _MODEL.generate_content(f"{system_prompt}\n\n---\n\n{user_content}")
+    response = _client.models.generate_content(
+        model=_MODEL_NAME,
+        contents=f"{system_prompt}\n\n---\n\n{user_content}",
+        config=_GENERATION_CONFIG,
+    )
     return response.text
 
 
