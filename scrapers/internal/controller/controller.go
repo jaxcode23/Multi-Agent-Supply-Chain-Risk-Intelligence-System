@@ -4,6 +4,8 @@ import (
 	"context"
 	"log/slog"
 	"time"
+
+	"github.com/jaxcode23/scrapers/internal/service"
 )
 
 type ScrapeRequest struct {
@@ -18,14 +20,16 @@ type ScrapeResponse struct {
 }
 
 type Controller struct {
-	logger *slog.Logger
-	timeout time.Duration
+	scraperService *service.ScraperService
+	logger         *slog.Logger
+	timeout        time.Duration
 }
 
-func NewController(logger *slog.Logger) *Controller {
+func NewController(scraperService *service.ScraperService, logger *slog.Logger) *Controller {
 	return &Controller{
-		logger:  logger,
-		timeout: 30 * time.Second,
+		scraperService: scraperService,
+		logger:         logger,
+		timeout:        30 * time.Second,
 	}
 }
 
@@ -35,13 +39,23 @@ func (c *Controller) ProcessScrapeRequest(ctx context.Context, req ScrapeRequest
 
 	c.logger.Info("processing scrape request", "url", req.URL)
 
+	c.scraperService.StartHopping(ctx, req.URL, req.Selectors)
+
 	var content = make(map[string]string)
-	for _, sel := range req.Selectors {
-		content[sel] = ""
+	for range req.Selectors {
+		select {
+		case res := <-c.scraperService.Results:
+			if res.Error != nil {
+				c.logger.Warn("scrape failed", "section", res.Metadata["section"], "err", res.Error)
+				content[res.Metadata["section"]] = ""
+			} else {
+				content[res.Metadata["section"]] = res.Content
+			}
+		case <-ctx.Done():
+			c.logger.Warn("context cancelled while collecting results")
+			return ScrapeResponse{URL: req.URL, Content: content}
+		}
 	}
 
-	return ScrapeResponse{
-		URL:     req.URL,
-		Content: content,
-	}
+	return ScrapeResponse{URL: req.URL, Content: content}
 }

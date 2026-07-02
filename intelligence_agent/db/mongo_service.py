@@ -70,6 +70,7 @@ def mark_as_processed(mongo_id: str, analysis_result: dict) -> None:
             "$set": {
                 "llm_analysis": analysis_result,
                 "llm_processed": True,
+                "analysis.escalate_to_analysis": False,
             }
         }
     )

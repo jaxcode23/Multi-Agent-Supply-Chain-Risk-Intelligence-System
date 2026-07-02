@@ -21,7 +21,7 @@ class TestGetSupplierIdByName:
         mock_get, _ = mock_neo4j
         mock_get.return_value = {"id": 42, "name": "Tata", "region": "Asia"}
         from agents.analysis.planner import get_supplier_id_by_name
-        assert get_supplier_id_by_name("Tata") == 42
+        assert get_supplier_id_by_name("Tata") == "42"
         mock_get.assert_called_once_with("Tata")
 
     def test_returns_none_when_supplier_not_found(self, mock_neo4j):
@@ -30,11 +30,11 @@ class TestGetSupplierIdByName:
         from agents.analysis.planner import get_supplier_id_by_name
         assert get_supplier_id_by_name("Unknown") is None
 
-    def test_returns_none_when_id_not_int(self, mock_neo4j):
+    def test_returns_string_id_when_not_int(self, mock_neo4j):
         mock_get, _ = mock_neo4j
         mock_get.return_value = {"id": "not-an-int"}
         from agents.analysis.planner import get_supplier_id_by_name
-        assert get_supplier_id_by_name("Tata") is None
+        assert get_supplier_id_by_name("Tata") == "not-an-int"
 
     def test_returns_none_when_id_missing(self, mock_neo4j):
         mock_get, _ = mock_neo4j
@@ -48,6 +48,6 @@ class TestPlanAlternatives:
         _, mock_find = mock_neo4j
         mock_find.return_value = [{"id": "S002", "name": "Reliance"}]
         from agents.analysis.planner import plan_alternatives
-        result = plan_alternatives(42)
+        result = plan_alternatives("42")
         assert result == [{"id": "S002", "name": "Reliance"}]
-        mock_find.assert_called_once_with(42)
+        mock_find.assert_called_once_with("42")

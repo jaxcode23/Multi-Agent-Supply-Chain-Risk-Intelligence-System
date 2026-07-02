@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     chroma_tenant: str = ""
     chroma_database: str = "supply-chain-db"
     chroma_collection: str = "supply_chain_intel"
-    chroma_host: str = "api.trychroma.com"
+    chroma_host: str = "chroma"
 
     neo4j_uri: str
     neo4j_user: str = "neo4j"

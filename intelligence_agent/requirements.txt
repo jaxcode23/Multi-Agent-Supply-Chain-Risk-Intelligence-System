@@ -5,3 +5,4 @@ google-generativeai
 pymongo[srv]
 pydantic>=2.0
 schedule
+chromadb

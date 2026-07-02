@@ -17,7 +17,7 @@ case class AppConfig(
 object AppConfig {
   def load(): AppConfig = AppConfig(
     grpcPort         = env("GRPC_PORT",        "9090").toInt,
-    chromaHost       = env("CHROMA_HOST",       "api.trychroma.com"),
+    chromaHost       = env("CHROMA_HOST",       "chroma"),
     chromaApiKey     = env("CHROMA_API_KEY",    ""),
     chromaTenant     = env("CHROMA_TENANT",     ""),
     chromaDatabase   = env("CHROMA_DATABASE",   "supply-chain-db"),
