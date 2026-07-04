@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { api, type DashboardSummary, type RecentRiskItem } from "@/lib/api";
+import { wsClient } from "@/lib/ws";
 
 // Custom offline-resilient high-fidelity SVG Icons
 const TerminalIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
@@ -152,6 +153,34 @@ export default function LandingPage() {
       }
     }
     fetchData();
+  }, []);
+
+  // WebSocket real-time feed
+  useEffect(() => {
+    wsClient.connect();
+
+    const unsubInit = wsClient.on("init", (msg) => {
+      if (msg.summary) setSummary(msg.summary);
+      if (msg.recent && msg.recent.length > 0) setRecentRisks(msg.recent);
+    });
+
+    const unsubAlert = wsClient.on("risk_alert", (risk) => {
+      setRecentRisks((prev) => {
+        const next = [risk as RecentRiskItem, ...prev];
+        if (next.length > 50) next.pop();
+        return next;
+      });
+    });
+
+    const unsubSummary = wsClient.on("summary_update", (msg) => {
+      if (msg.summary) setSummary(msg.summary);
+    });
+
+    return () => {
+      unsubInit();
+      unsubAlert();
+      unsubSummary();
+    };
   }, []);
 
   // Scroll reveal with IntersectionObserver

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, BackgroundTasks, Body
 from core.models import AgentTriggerRequest, AgentTriggerResponse
 from gateway.orchestration.mitigation_graph import run_orchestrator
+from gateway.api.ws.ws_router import publish_agent_result
 import logging
 
 router = APIRouter(prefix="/agents", tags=["Agents"])
@@ -8,14 +9,17 @@ logger = logging.getLogger(__name__)
 
 
 def _run_in_background(event: dict):
+    supplier_name = event.get("supplier_name", "unknown")
     try:
         result = run_orchestrator(event)
+        publish_agent_result(supplier_name, "completed", "Mitigation pipeline finished.")
         logger.info(
-            f"[AgentRouter] Orchestrator complete for '{event.get('supplier_name')}' "
+            f"[AgentRouter] Orchestrator complete for '{supplier_name}' "
             f"| plan_length={len(result.get('final_plan', ''))} chars"
         )
     except Exception as e:
-        logger.error(f"[AgentRouter] Orchestrator failed for '{event.get('supplier_name')}': {e}")
+        publish_agent_result(supplier_name, "failed", str(e))
+        logger.error(f"[AgentRouter] Orchestrator failed for '{supplier_name}': {e}")
 
 
 @router.post("/trigger", response_model=AgentTriggerResponse)
