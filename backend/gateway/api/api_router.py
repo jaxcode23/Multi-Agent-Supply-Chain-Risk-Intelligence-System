@@ -4,6 +4,7 @@ from .risks.risk_router import router as risk_router
 from .suppliers.supplier_router import router as supplier_router
 from .dashboard.dashboard_router import router as dashboard_router
 from .agents.agent_router import router as agent_router
+from .ws.ws_router import router as ws_router
 
 main_api_router = APIRouter()
 main_api_router.include_router(health_router)
@@ -11,3 +12,4 @@ main_api_router.include_router(risk_router)
 main_api_router.include_router(supplier_router)
 main_api_router.include_router(dashboard_router)
 main_api_router.include_router(agent_router)
+main_api_router.include_router(ws_router)

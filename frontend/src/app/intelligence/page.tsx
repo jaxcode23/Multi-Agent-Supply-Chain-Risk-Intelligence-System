@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { api, type DashboardSummary } from "@/lib/api";
+import { api, type DashboardSummary, type RecentRiskItem } from "@/lib/api";
+import { wsClient } from "@/lib/ws";
 
 // Custom premium SVG Icons for offline resilience and absolute positioning control
 const SearchIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
@@ -96,6 +97,9 @@ export default function TacticalOperationsConsole() {
   // Fetched dashboard data
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
 
+  // WebSocket-pushed risk alerts
+  const [wsAlerts, setWsAlerts] = useState<RecentRiskItem[]>([]);
+
   // Interactive input console state
   const [terminalInputValue, setTerminalInputValue] = useState("");
   const [terminalLogs, setTerminalLogs] = useState<TerminalLog[]>([
@@ -174,6 +178,41 @@ export default function TacticalOperationsConsole() {
   // Fetch dashboard summary data
   useEffect(() => {
     api.dashboardSummary().then(setSummary).catch(() => {});
+  }, []);
+
+  // WebSocket real-time feed
+  useEffect(() => {
+    wsClient.connect();
+
+    const unsubInit = wsClient.on("init", (msg) => {
+      if (msg.summary) setSummary(msg.summary);
+    });
+
+    const unsubSummary = wsClient.on("summary_update", (msg) => {
+      if (msg.summary) setSummary(msg.summary);
+    });
+
+    const unsubAgent = wsClient.on("agent_result", (data) => {
+      setTerminalLogs((prev) => [
+        ...prev,
+        { type: "output" as const, text: `> AGENT [${data.supplier_name}]: ${data.status} — ${data.message}` },
+      ]);
+    });
+
+    const unsubAlert = wsClient.on("risk_alert", (risk) => {
+      setWsAlerts((prev) => {
+        const next = [risk as RecentRiskItem, ...prev];
+        if (next.length > 20) next.pop();
+        return next;
+      });
+    });
+
+    return () => {
+      unsubInit();
+      unsubSummary();
+      unsubAgent();
+      unsubAlert();
+    };
   }, []);
 
   // Placeholder phrase cycling
@@ -439,6 +478,23 @@ export default function TacticalOperationsConsole() {
               <span className="font-code-md text-on-surface-variant text-xs select-none">REFRESH_RATE: 0.5s</span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* WS risk alert cards injected in real-time */}
+              {wsAlerts.map((alert, idx) => (
+                <div key={`ws-${idx}`} className="border border-outline-variant bg-surface-container-high p-4 flex flex-col gap-3 relative group overflow-hidden transition-all duration-300 hover:border-error/60">
+                  <div className="absolute top-0 right-0 p-2 opacity-50 group-hover:opacity-100 transition-opacity">
+                    <WarningIcon className="text-error w-5 h-5" />
+                  </div>
+                  <div className="font-label-sm text-label-sm text-error border-b border-error/30 pb-1">
+                    LIVE ALERT
+                  </div>
+                  <h3 className="font-headline-sm text-sm text-on-surface font-bold uppercase">{alert.title || "Risk Alert"}</h3>
+                  <p className="font-code-md text-xs text-on-surface-variant leading-relaxed">
+                    Risk Score: {alert.risk_score} | Priority: {alert.priority}
+                    {alert.published_at ? ` | ${alert.published_at}` : ""}
+                  </p>
+                </div>
+              ))}
+
               {/* Tactical Card 1 */}
               <div className="border border-outline-variant bg-surface-container-high p-4 flex flex-col gap-3 relative group overflow-hidden transition-all duration-300 hover:border-primary/45">
                 <div className="absolute top-0 right-0 p-2 opacity-50 group-hover:opacity-100 transition-opacity">
