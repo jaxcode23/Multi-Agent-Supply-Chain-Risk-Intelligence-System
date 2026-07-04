@@ -104,4 +104,6 @@ cargo run
 - [x] **Phase 1**: Initial Scaffolding (frontend, backend, runner, ingestion).
 - [x] **Phase 2**: Core Components & Scrapers Integration.
 - [x] **Phase 3**: Tech Debt & Refactoring (25 issues resolved across all components).
-- [ ] **Phase 4**: Full-Stack Polish & Production Deployment.
+- [x] **Phase 4 M1**: Backend-Frontend API Integration (wired all pages to live endpoints).
+- [x] **Phase 4 M2**: WebSocket Real-Time Feed (WS endpoint + client, tactical feed wired).
+- [ ] **Phase 4 M3–M5**: Production Readiness, Monitoring, Deployment Automation.
