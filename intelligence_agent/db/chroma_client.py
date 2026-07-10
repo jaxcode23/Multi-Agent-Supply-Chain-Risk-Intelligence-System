@@ -8,6 +8,7 @@ logger = logging.getLogger(__name__)
 
 _CHROMA_HOST = os.getenv("CHROMA_HOST", "chroma")
 _CHROMA_API_KEY = os.getenv("CHROMA_API_KEY", "")
+_CHROMA_SSL = os.getenv("CHROMA_SSL", "true").lower() == "true"
 _CHROMA_TENANT = os.getenv("CHROMA_TENANT", "")
 _CHROMA_DATABASE = os.getenv("CHROMA_DATABASE", "supply-chain-db")
 _CHROMA_COLLECTION = os.getenv("CHROMA_COLLECTION", "supply_chain_intel")
@@ -16,7 +17,7 @@ _CHROMA_COLLECTION = os.getenv("CHROMA_COLLECTION", "supply_chain_intel")
 def _get_collection():
     client = chromadb.HttpClient(
         host=_CHROMA_HOST,
-        ssl=False,
+        ssl=_CHROMA_SSL,
         headers={"X-Chroma-Token": _CHROMA_API_KEY} if _CHROMA_API_KEY else {},
     )
     return client.get_or_create_collection(_CHROMA_COLLECTION)

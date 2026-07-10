@@ -15,7 +15,7 @@ logger = logging.getLogger("AnalysisRunner")
 
 def run_analysis_pipeline() -> None:
     """Run the two-stage LLM pipeline over all unprocessed escalated documents."""
-    logger.info("🚀 Analysis pipeline started.")
+    logger.info("Analysis pipeline started.")
     processed = 0
     failed = 0
 
@@ -23,7 +23,7 @@ def run_analysis_pipeline() -> None:
         mongo_id = doc["mongo_id"]
         url = doc.get("url", "")
         title = doc.get("title", "unknown")
-        logger.info(f"🔍 Processing: {title[:70]}")
+        logger.info(f"Processing: {title[:70]}")
 
         analysis = run_analysis_agent(doc)
         if analysis is None:
@@ -39,7 +39,7 @@ def run_analysis_pipeline() -> None:
         mark_as_processed(mongo_id, {**analysis, "rag_chunks": rag_chunks or []})
         processed += 1
 
-    logger.info(f"✅ Pipeline complete. Processed: {processed} | Failed: {failed}")
+    logger.info(f"Pipeline complete. Processed: {processed} | Failed: {failed}")
 
 
 if __name__ == "__main__":

@@ -89,7 +89,7 @@ def run_analysis_agent(doc: dict) -> dict | None:
     try:
         raw = _call_llm(_ANALYSIS_SYSTEM_PROMPT, f"TITLE: {title}\n\nARTICLE TEXT:\n{payload_text}")
         result = json.loads(raw)
-        logger.info(f"✅ Analysis complete: {title[:60]}")
+        logger.info(f"Analysis complete: {title[:60]}")
         return result
     except json.JSONDecodeError as e:
         logger.error(f"LLM returned non-JSON: {e}")
@@ -120,7 +120,7 @@ def run_context_prep_agent(analysis_result: dict) -> list[str] | None:
         if not isinstance(chunks, list):
             logger.error("Context prep agent returned non-list JSON.")
             return None
-        logger.info(f"✅ Generated {len(chunks)} RAG chunks.")
+        logger.info(f"Generated {len(chunks)} RAG chunks.")
         return chunks
     except json.JSONDecodeError as e:
         logger.error(f"Context prep agent returned non-JSON: {e}")

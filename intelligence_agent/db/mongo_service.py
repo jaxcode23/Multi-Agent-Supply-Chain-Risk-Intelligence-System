@@ -33,12 +33,6 @@ def get_escalated_documents() -> Iterator[dict]:
     cursor = collection.find(query)
 
     for raw_doc in cursor:
-        # --- DEBUG: uncomment these lines if the agent receives empty payloads ---
-        # logger.debug("--- DEBUG: RAW MONGO KEYS ---")
-        # logger.debug(list(raw_doc.keys()))
-        # logger.debug("--- DEBUG: PAYLOAD PREVIEW ---")
-        # logger.debug(repr(raw_doc.get("raw_text", ""))[:200])
-
         # Yield only the serializable fields the LLM layer actually needs.
         # This prevents ObjectId serialization errors in LLM wrappers.
         yield {

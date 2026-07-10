@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 import hashlib
 from pydantic import BaseModel, Field, computed_field
@@ -21,7 +21,7 @@ class IntelDocument(BaseModel):
     published_at: datetime
     
     # Metadata
-    ingested_at: datetime = Field(default_factory=datetime.utcnow)
+    ingested_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     
     # Analysis Data (Embedded Sub-document)
     analysis: IntelAnalysis
