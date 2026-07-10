@@ -11,7 +11,7 @@ def _get_chroma_collection():
     try:
         client = chromadb.HttpClient(
             host=_settings.chroma_host,
-            ssl=True,
+            ssl=_settings.chroma_ssl,
             headers={"X-Chroma-Token": _settings.chroma_api_key} if _settings.chroma_api_key else {},
         )
         return client.get_or_create_collection(name=_settings.chroma_collection)

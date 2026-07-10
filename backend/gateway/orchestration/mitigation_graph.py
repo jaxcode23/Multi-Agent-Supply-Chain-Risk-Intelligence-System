@@ -44,7 +44,7 @@ def retrieve_rag_context(state: AgentState) -> dict[str, Any]:
     try:
         client = chromadb.HttpClient(
             host=_settings.chroma_host,
-            ssl=True,
+            ssl=_settings.chroma_ssl,
             headers={"X-Chroma-Token": _settings.chroma_api_key},
         )
         collection = client.get_or_create_collection(_settings.chroma_collection)
@@ -159,7 +159,7 @@ _compiled_graph = _build_graph()
 def run_orchestrator(risk_event: dict[str, Any]) -> dict[str, Any]:
     """Invoke the compiled mitigation graph. Returns final AgentState."""
     logger.info(
-        f"🚀 Orchestrator invoked | supplier='{risk_event.get('supplier_name')}' "
+        f"Orchestrator invoked | supplier='{risk_event.get('supplier_name')}' "
         f"| risk_score={risk_event.get('risk_score')}"
     )
     initial_state: AgentState = {
@@ -169,5 +169,5 @@ def run_orchestrator(risk_event: dict[str, Any]) -> dict[str, Any]:
         "final_plan": "",
     }
     final_state = _compiled_graph.invoke(initial_state)
-    logger.info(f"✅ Orchestrator complete | plan_length={len(final_state.get('final_plan', ''))} chars")
+    logger.info(f"Orchestrator complete | plan_length={len(final_state.get('final_plan', ''))} chars")
     return final_state
