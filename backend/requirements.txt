@@ -7,61 +7,30 @@ pydantic
 pydantic-settings
 
 # =========================
-# Database & ORM
+# NoSQL / Graph
 # =========================
-sqlalchemy
-alembic
-psycopg2-binary
-
-# =========================
-# NoSQL / Cache
-# =========================
-redis
 pymongo
 neo4j
 
 # =========================
 # Async & Networking
 # =========================
-httpx
 websockets
-aiofiles
-
-# =========================
-# Auth & Security
-# =========================
-python-jose
-passlib[bcrypt]
-python-multipart
-
-# =========================
-# Background Tasks (Agents)
-# =========================
-celery
-tenacity
-
-# =========================
-# AI / ML (core, lightweight)
-# =========================
-numpy
-scikit-learn
-pandas
 requests
+python-dotenv
+
+# =========================
+# AI / ML
+# =========================
 chromadb
 openai
 
 # =========================
-# LangChain / LangGraph
+# LangGraph Pipeline
 # =========================
 langgraph
 langchain-core
 langchain-openai
-
-# =========================
-# Logging & Utilities
-# =========================
-loguru
-python-dotenv
 
 # =========================
 # Testing
