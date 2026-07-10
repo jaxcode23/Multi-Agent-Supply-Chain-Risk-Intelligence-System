@@ -2,20 +2,12 @@ name := "riskintel-ingestion"
 version := "0.1.0"
 scalaVersion := "2.13.18"
 
-val AkkaVersion     = "2.8.5"
-val AkkaHttpVersion = "10.5.3"
 val ZioVersion      = "2.0.19"
 val ZioGrpcVersion  = "0.6.1"   // scalapb-zio-grpc — must align with ScalaPbVersion below
 val ScalaPbVersion  = "0.11.13"
 val ZioHttpVersion  = "3.0.0-RC4"
 
 libraryDependencies ++= Seq(
-
-  // ── Core Akka (retained for DataCleaner / legacy flows) ──────────────────
-  "com.typesafe.akka" %% "akka-stream"           % AkkaVersion,
-  "com.typesafe.akka" %% "akka-actor-typed"      % AkkaVersion,
-  "com.typesafe.akka" %% "akka-http"             % AkkaHttpVersion,
-  "com.typesafe.akka" %% "akka-http-spray-json"  % AkkaHttpVersion,
 
   // ── ZIO Core ─────────────────────────────────────────────────────────────
   "dev.zio" %% "zio"         % ZioVersion,
