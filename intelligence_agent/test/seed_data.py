@@ -1,7 +1,7 @@
 import sys
 import os
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pymongo.errors import DuplicateKeyError
 
 # --- PATH HACK (To run from root) ---
@@ -75,7 +75,7 @@ def seed_database():
                 title=scenario["title"],
                 description=scenario["description"],
                 raw_text=f"{scenario['title']} {scenario['description']}",
-                published_at=datetime.utcnow() - timedelta(minutes=scenario["offset_mins"]),
+                published_at=datetime.now(timezone.utc) - timedelta(minutes=scenario["offset_mins"]),
                 
                 analysis=IntelAnalysis(
                     risk_score=scenario["risk_score"],

@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"log/slog"
-	"os"
 	"testing"
 	"time"
 
@@ -24,66 +23,6 @@ func TestGRPCClient_IsReady_ReturnsFalseBeforeConnect(t *testing.T) {
 	client := NewGRPCClient("localhost:9090", slog.Default())
 	if client.IsReady() {
 		t.Fatal("expected IsReady to return false before Connect()")
-	}
-}
-
-func TestEnvDurationSec_Default(t *testing.T) {
-	defer os.Unsetenv("TEST_DURATION")
-	os.Unsetenv("TEST_DURATION")
-
-	got := envDurationSec("TEST_DURATION", 30*time.Second)
-	if got != 30*time.Second {
-		t.Errorf("expected 30s, got %v", got)
-	}
-}
-
-func TestEnvDurationSec_Custom(t *testing.T) {
-	defer os.Unsetenv("TEST_DURATION")
-	os.Setenv("TEST_DURATION", "15")
-
-	got := envDurationSec("TEST_DURATION", 30*time.Second)
-	if got != 15*time.Second {
-		t.Errorf("expected 15s, got %v", got)
-	}
-}
-
-func TestEnvDurationSec_Invalid(t *testing.T) {
-	defer os.Unsetenv("TEST_DURATION")
-	os.Setenv("TEST_DURATION", "not-a-number")
-
-	got := envDurationSec("TEST_DURATION", 10*time.Second)
-	if got != 10*time.Second {
-		t.Errorf("expected 10s fallback, got %v", got)
-	}
-}
-
-func TestEnvInt_Default(t *testing.T) {
-	defer os.Unsetenv("TEST_INT")
-	os.Unsetenv("TEST_INT")
-
-	got := envInt("TEST_INT", 42)
-	if got != 42 {
-		t.Errorf("expected 42, got %d", got)
-	}
-}
-
-func TestEnvInt_Custom(t *testing.T) {
-	defer os.Unsetenv("TEST_INT")
-	os.Setenv("TEST_INT", "99")
-
-	got := envInt("TEST_INT", 42)
-	if got != 99 {
-		t.Errorf("expected 99, got %d", got)
-	}
-}
-
-func TestEnvInt_Invalid(t *testing.T) {
-	defer os.Unsetenv("TEST_INT")
-	os.Setenv("TEST_INT", "not-a-number")
-
-	got := envInt("TEST_INT", 7)
-	if got != 7 {
-		t.Errorf("expected 7 fallback, got %d", got)
 	}
 }
 

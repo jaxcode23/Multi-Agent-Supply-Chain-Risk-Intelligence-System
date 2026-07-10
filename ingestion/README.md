@@ -1,4 +1,4 @@
-# 🟠 Scala Processing Hub
+# Scala Processing Hub
 
 **Language:** Scala 2.13 + ZIO 2 | **Role:** Stream Processing & Vector Ingestion
 
@@ -48,7 +48,7 @@ ingestion/
 |---|---|
 | `ChromaDBClientLive` | POSTs to `http://$CHROMA_HOST/api/v1/collections/supply_chain_intel/upsert` |
 | `ChromaDBClientStub` | Logs upsert intent, no network calls — safe without docker-compose |
-| `ChromaDBClient.auto` | Selects `live` if `CHROMA_HOST` env is set, `stub` otherwise |
+| `ChromaDBClient.auto` | Selects `live` if `CHROMA_API_KEY` env is set, `stub` otherwise |
 
 ---
 
@@ -80,7 +80,11 @@ ZIO's `ZIO.log*` calls are bridged to SLF4J via `zio-logging-slf4j`. Logback out
 | Env Var | Default | Description |
 |---|---|---|
 | `GRPC_PORT` | `9090` | Port the Netty gRPC server binds to |
-| `CHROMA_HOST` | `chroma:8000` | ChromaDB REST API host (docker-compose service name) |
+| `CHROMA_HOST` | `chroma` | ChromaDB REST API host |
+| `CHROMA_API_KEY` | (empty) | ChromaDB API key; presence selects `live` client |
+| `CHROMA_BATCH_SIZE` | `10` | Chunks per upsert batch |
+| `CHUNK_SIZE` | `1000` | Sliding-window chunk character size |
+| `CHUNK_OVERLAP` | `200` | Sliding-window overlap character count |
 
 ---
 

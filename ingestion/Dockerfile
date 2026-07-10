@@ -17,4 +17,4 @@ COPY --from=build /app/src/main/resources/ /app/resources/
 
 EXPOSE 9090
 
-CMD ["java", "-cp", "/app/target/scala-2.13/classes:/app/target/scala-2.13/src_managed/main/scalapb:/app/resources", "Main"]
+ENTRYPOINT ["java", "-cp", "/app/target/scala-2.13/classes:/app/target/scala-2.13/src_managed/main/scalapb:/app/resources", "Main"]

@@ -2,8 +2,7 @@ import asyncio
 import json
 import logging
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from core.models import DashboardSummary, RecentRiskItem
-from core.db.mongo_client import get_mongo_client
+from core.db.dashboard_queries import fetch_summary, fetch_recent
 from gateway.app_config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -23,50 +22,6 @@ def publish_agent_result(supplier_name: str, status: str, message: str):
             dead.append(q)
     for q in dead:
         _agent_queues.remove(q)
-
-
-def _fetch_summary() -> dict:
-    client = get_mongo_client()
-    db = client[_settings.mongo_db_name]
-    col = db["raw_intel"]
-    total = col.count_documents({})
-    escalated = col.count_documents({"analysis.escalate_to_analysis": True})
-    processed = col.count_documents({"llm_processed": True})
-    high_priority = col.count_documents({"analysis.priority": "high"})
-    pipeline = [{"$group": {"_id": None, "avg": {"$avg": "$analysis.risk_score"}}}]
-    avg_result = list(col.aggregate(pipeline))
-    risk_avg = round(avg_result[0]["avg"], 2) if avg_result else 0.0
-    return DashboardSummary(
-        total_documents=total,
-        escalated_count=escalated,
-        processed_count=processed,
-        high_priority_count=high_priority,
-        risk_score_avg=risk_avg,
-    ).model_dump()
-
-
-def _fetch_recent(limit: int = 20) -> list[dict]:
-    client = get_mongo_client()
-    db = client[_settings.mongo_db_name]
-    col = db["raw_intel"]
-    docs = list(
-        col.find(
-            {"analysis.priority": "high"},
-            {"title": 1, "analysis.risk_score": 1, "analysis.priority": 1, "url": 1, "published_at": 1},
-        )
-        .sort("ingested_at", -1)
-        .limit(limit)
-    )
-    return [
-        RecentRiskItem(
-            title=d.get("title", ""),
-            risk_score=d.get("analysis", {}).get("risk_score", 0),
-            priority=d.get("analysis", {}).get("priority", "low"),
-            source_url=d.get("url"),
-            published_at=str(d["published_at"]) if d.get("published_at") else None,
-        ).model_dump()
-        for d in docs
-    ]
 
 
 @router.websocket("/ws")
@@ -102,15 +57,15 @@ async def ws_endpoint(websocket: WebSocket):
         while not stop_event.is_set():
             await asyncio.sleep(8)
             try:
-                summary = await asyncio.to_thread(_fetch_summary)
-                await websocket.send_json({"type": "summary_update", "summary": summary})
+                summary_dict = await asyncio.to_thread(lambda: fetch_summary(_settings.mongo_db_name).model_dump())
+                await websocket.send_json({"type": "summary_update", "summary": summary_dict})
             except Exception as e:
                 logger.warning(f"WS poll summary error: {e}")
 
     try:
-        summary = await asyncio.to_thread(_fetch_summary)
-        recent = await asyncio.to_thread(_fetch_recent)
-        await websocket.send_json({"type": "init", "summary": summary, "recent": recent})
+        summary_dict = await asyncio.to_thread(lambda: fetch_summary(_settings.mongo_db_name).model_dump())
+        recent = await asyncio.to_thread(fetch_recent, 20, _settings.mongo_db_name)
+        await websocket.send_json({"type": "init", "summary": summary_dict, "recent": recent})
 
         await asyncio.gather(reader(), agent_listener(), poll_loop())
     except Exception as e:

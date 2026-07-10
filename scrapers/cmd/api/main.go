@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
-	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -24,30 +23,12 @@ func envOrDefault(key, fallback string) string {
 	return fallback
 }
 
-func envInt(key string, fallback int) int {
-	if v := os.Getenv(key); v != "" {
-		if n, err := strconv.Atoi(v); err == nil {
-			return n
-		}
-	}
-	return fallback
-}
-
 func trimEach(s []string) []string {
 	out := make([]string, len(s))
 	for i, v := range s {
 		out[i] = strings.TrimSpace(v)
 	}
 	return out
-}
-
-func envDuration(key string, fallback time.Duration) time.Duration {
-	if v := os.Getenv(key); v != "" {
-		if n, err := strconv.Atoi(v); err == nil {
-			return time.Duration(n) * time.Second
-		}
-	}
-	return fallback
 }
 
 // seedDef represents a single scrape target with its DOM selectors
@@ -59,9 +40,9 @@ type seedDef struct {
 var (
 	scalaHubAddr      = envOrDefault("SCALA_HUB_ADDR", "localhost:9090")
 	httpAddr          = envOrDefault("HTTP_ADDR", ":8080")
-	workerConcurrency = envInt("WORKER_CONCURRENCY", 5)
-	payloadBufferSize = envInt("PAYLOAD_BUFFER_SIZE", 200)
-	shutdownGrace     = envDuration("SHUTDOWN_GRACE_SECONDS", 15*time.Second)
+	workerConcurrency = utils.EnvInt("WORKER_CONCURRENCY", 5)
+	payloadBufferSize = utils.EnvInt("PAYLOAD_BUFFER_SIZE", 200)
+	shutdownGrace     = utils.EnvDurationSec("SHUTDOWN_GRACE_SECONDS", 15*time.Second)
 	scrapeSeeds       = parseSeeds(envOrDefault("SCRAPE_SEEDS", ""))
 )
 
@@ -95,7 +76,7 @@ func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	slog.SetDefault(logger)
 
-	logger.Info("🚀 Supply Chain Scraper Gateway starting",
+	logger.Info("Supply Chain Scraper Gateway starting",
 		"scala_hub", scalaHubAddr,
 		"http_addr", httpAddr,
 		"worker_concurrency", workerConcurrency,
@@ -174,7 +155,7 @@ func main() {
 		scraperSvc.StartHopping(rootCtx, seed.URL, seed.Selectors)
 	}
 
-	logger.Info("✅ Go Gateway ready", "http", httpAddr, "grpc_target", scalaHubAddr, "seeds", len(scrapeSeeds))
+	logger.Info("Go Gateway ready", "http", httpAddr, "grpc_target", scalaHubAddr, "seeds", len(scrapeSeeds))
 	<-rootCtx.Done()
 	logger.Info("shutdown signal received", "grace_seconds", shutdownGrace.Seconds())
 
@@ -183,8 +164,8 @@ func main() {
 
 	select {
 	case <-streamDone:
-		logger.Info("✅ Graceful shutdown complete")
+		logger.Info("Graceful shutdown complete")
 	case <-time.After(shutdownGrace):
-		logger.Warn("⚠️  Grace period exceeded — forcing exit")
+		logger.Warn("Grace period exceeded — forcing exit")
 	}
 }

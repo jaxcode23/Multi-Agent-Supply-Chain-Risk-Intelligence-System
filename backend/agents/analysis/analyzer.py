@@ -3,15 +3,22 @@ from datetime import datetime
 from typing import Optional, List, Dict, Any
 from .risk_scoring import calculate_risk_score
 from .planner import get_supplier_id_by_name, plan_alternatives
-from core.db.mongo_client import get_news_collection
+from gateway.app_config import get_settings
 
-# ChromaDB Initialization with error handling
-try:
-    chroma_client = chromadb.HttpClient(host="chroma", port=8000)
-    collection = chroma_client.get_or_create_collection(name="supply_chain_intel")
-except Exception as e:
-    # Fail-safe for initialization errors to prevent service crash
-    collection = None
+_settings = get_settings()
+
+def _get_chroma_collection():
+    try:
+        client = chromadb.HttpClient(
+            host=_settings.chroma_host,
+            ssl=_settings.chroma_ssl,
+            headers={"X-Chroma-Token": _settings.chroma_api_key} if _settings.chroma_api_key else {},
+        )
+        return client.get_or_create_collection(name=_settings.chroma_collection)
+    except Exception:
+        return None
+
+_collection = _get_chroma_collection()
 
 KNOWN_SUPPLIERS: List[str] = [
     "Tata",
@@ -58,9 +65,9 @@ def analyze_news(article: Dict[str, Any]) -> Optional[Dict[str, Any]]:
 
     # RAG: Fetch relevant context from ChromaDB with defensive checks
     context_str: str = ""
-    if collection is not None:
+    if _collection is not None:
         try:
-            context_results = collection.query(
+            context_results = _collection.query(
                 query_texts=[full_text],
                 n_results=3
             )

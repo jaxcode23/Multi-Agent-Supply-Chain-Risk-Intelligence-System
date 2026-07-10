@@ -1,6 +1,6 @@
 ﻿import os
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import requests # type: ignore
 from dotenv import load_dotenv
 from pymongo.errors import DuplicateKeyError
@@ -27,7 +27,7 @@ def _fetch_from_api():
         return []
 
     # Window: Last 20 mins to catch anything in the 15-min gap + buffer
-    time_window = datetime.utcnow() - timedelta(minutes=20)
+    time_window = datetime.now(timezone.utc) - timedelta(minutes=20)
     
     params = {
         "q": " OR ".join(["fire", "strike", "shutdown", "riot", "conflict"]),

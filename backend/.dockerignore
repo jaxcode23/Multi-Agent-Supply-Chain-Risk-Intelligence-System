@@ -1,0 +1,12 @@
+__pycache__
+*.pyc
+.env
+.git
+.gitignore
+*.md
+Dockerfile
+.dockerignore
+tests/
+*.egg-info
+.venv
+venv/

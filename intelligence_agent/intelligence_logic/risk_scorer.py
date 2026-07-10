@@ -5,6 +5,7 @@
     "riot": 4,
     "shutdown": 3,
     "flood": 3,
+    "conflict": 4,
 }
 
 def calculate_intel_risk(text: str) -> int:

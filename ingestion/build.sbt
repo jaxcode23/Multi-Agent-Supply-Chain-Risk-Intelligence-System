@@ -49,6 +49,9 @@ testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")
 // ScalaPB: generate both plain case classes AND the ZIO gRPC service traits
 import scalapb.zio_grpc.ZioCodeGenerator
 
+// Reference the canonical proto definitions in the root project
+Compile / PB.protoSources += file("../proto")
+
 Compile / PB.targets := Seq(
   scalapb.gen(grpc = true) -> (Compile / sourceManaged).value / "scalapb",
   ZioCodeGenerator -> (Compile / sourceManaged).value / "scalapb"
