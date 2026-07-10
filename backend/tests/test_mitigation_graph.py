@@ -62,36 +62,22 @@ class TestRetrieveRagContext:
 
 class TestQuerySupplierGraph:
     def test_returns_alternatives_on_success(self, base_state):
-        mock_result = MagicMock()
-        mock_result.__iter__.return_value = [
-            {"name": "Reliance", "region": "Asia"},
-            {"name": "Adani", "region": "EU"},
-        ]
-        mock_session = MagicMock()
-        mock_session.run.return_value = mock_result
-        mock_driver = MagicMock()
-        mock_driver.session.return_value.__enter__.return_value = mock_session
-        with patch("neo4j.GraphDatabase.driver", return_value=mock_driver):
+        with patch("core.db.neo4j_client.find_alternative_suppliers_by_name", return_value=[
+            "Reliance (Asia)", "Adani (EU)",
+        ]):
             from gateway.orchestration.mitigation_graph import query_supplier_graph
             result = query_supplier_graph(base_state)
             assert len(result["graph_context"]) == 2
             assert "Reliance (Asia)" in result["graph_context"]
 
     def test_returns_empty_on_failure(self, base_state):
-        with patch("neo4j.GraphDatabase.driver") as mock_driver_cls:
-            mock_driver_cls.side_effect = Exception("connection failed")
+        with patch("core.db.neo4j_client.find_alternative_suppliers_by_name", side_effect=Exception("connection failed")):
             from gateway.orchestration.mitigation_graph import query_supplier_graph
             result = query_supplier_graph(base_state)
             assert result["graph_context"] == []
 
     def test_formats_alternative_without_region(self, base_state):
-        mock_result = MagicMock()
-        mock_result.__iter__.return_value = [{"name": "Reliance", "region": None}]
-        mock_session = MagicMock()
-        mock_session.run.return_value = mock_result
-        mock_driver = MagicMock()
-        mock_driver.session.return_value.__enter__.return_value = mock_session
-        with patch("neo4j.GraphDatabase.driver", return_value=mock_driver):
+        with patch("core.db.neo4j_client.find_alternative_suppliers_by_name", return_value=["Reliance"]):
             from gateway.orchestration.mitigation_graph import query_supplier_graph
             result = query_supplier_graph(base_state)
             assert result["graph_context"] == ["Reliance"]
@@ -117,18 +103,14 @@ class TestGenerateMitigation:
 class TestRunOrchestrator:
     def test_complete_pipeline_returns_all_fields(self, sample_event):
         with patch("gateway.orchestration.mitigation_graph.chromadb.HttpClient") as mock_chroma, \
-             patch("neo4j.GraphDatabase.driver") as mock_neo4j, \
+             patch("core.db.neo4j_client.find_alternative_suppliers_by_name") as mock_neo4j, \
              patch("gateway.orchestration.mitigation_graph.ChatOpenAI") as mock_llm:
 
             mock_collection = MagicMock()
             mock_collection.query.return_value = {"documents": [["ctx"]]}
             mock_chroma.return_value.get_or_create_collection.return_value = mock_collection
 
-            mock_result = MagicMock()
-            mock_result.__iter__.return_value = [{"name": "Alt1", "region": "Asia"}]
-            mock_session = MagicMock()
-            mock_session.run.return_value = mock_result
-            mock_neo4j.return_value.session.return_value.__enter__.return_value = mock_session
+            mock_neo4j.return_value = ["Alt1 (Asia)"]
 
             mock_llm.side_effect = Exception("LLM unavailable")
 

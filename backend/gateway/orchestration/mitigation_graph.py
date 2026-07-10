@@ -63,34 +63,16 @@ def retrieve_rag_context(state: AgentState) -> dict[str, Any]:
 
 def query_supplier_graph(state: AgentState) -> dict[str, Any]:
     """Traverse Neo4j Aura to find alternative suppliers sharing the same product categories."""
-    from neo4j import GraphDatabase
+    from core.db.neo4j_client import find_alternative_suppliers_by_name
 
     risk_event = state["risk_event"]
     supplier = risk_event.get("supplier_name", "")
-    supplier_id = risk_event.get("supplier_id")
 
     logger.info(f"[Node 2] Neo4j query for alternatives to '{supplier}'.")
 
     alternatives: list[str] = []
     try:
-        driver = GraphDatabase.driver(
-            _settings.neo4j_uri,
-            auth=(_settings.neo4j_user, _settings.neo4j_password),
-        )
-        query = """
-            MATCH (s:Supplier {name: $name})-[:SUPPLIES]->(p:Product)<-[:SUPPLIES]-(alt:Supplier)
-            WHERE alt.name <> $name AND alt.status = 'ACTIVE'
-            RETURN DISTINCT alt.name AS name, alt.region AS region
-            ORDER BY alt.reliability_score DESC
-            LIMIT 5
-        """
-        with driver.session() as session:
-            result = session.run(query, name=supplier)
-            alternatives = [
-                f"{r['name']} ({r['region']})" if r.get("region") else r["name"]
-                for r in result
-            ]
-        driver.close()
+        alternatives = find_alternative_suppliers_by_name(supplier, limit=5)
         logger.info(f"[Node 2] Found {len(alternatives)} alternative(s).")
     except Exception as e:
         logger.warning(f"[Node 2] Neo4j query failed: {e}. Proceeding with empty alternatives.")

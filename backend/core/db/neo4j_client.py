@@ -48,3 +48,20 @@ def find_alternative_suppliers(supplier_id: str, limit: int = 5) -> list[dict[st
             limit=limit,
         )
         return [dict(r) for r in result]
+
+
+def find_alternative_suppliers_by_name(name: str, limit: int = 5) -> list[str]:
+    """Return active alternative supplier names sharing products with the given supplier name."""
+    with _get_driver().session() as session:
+        result = session.run(
+            """
+            MATCH (s:Supplier {name: $name})-[:SUPPLIES]->(p:Product)<-[:SUPPLIES]-(alt:Supplier)
+            WHERE alt.name <> $name AND alt.status = 'ACTIVE'
+            RETURN DISTINCT alt.name AS name, alt.region AS region
+            ORDER BY alt.reliability_score DESC
+            LIMIT $limit
+            """,
+            name=name,
+            limit=limit,
+        )
+        return [f"{r['name']} ({r['region']})" if r.get("region") else r["name"] for r in result]
