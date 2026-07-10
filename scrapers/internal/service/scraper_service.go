@@ -54,6 +54,7 @@ func (sw *SectionWorker) sendResult(res models.ScrapeResult) {
 	case <-time.After(1 * time.Second):
 		// Prevent blocking if output channel is full
 		fmt.Printf("Warning: Dropping result for task %s due to slow consumer\n", res.TaskID)
+		// TODO: increment a dropped-results counter for observability
 	}
 }
 

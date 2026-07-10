@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"os"
-	"strconv"
 	"time"
 
 	"google.golang.org/grpc"
@@ -15,30 +13,12 @@ import (
 	"google.golang.org/grpc/keepalive"
 
 	pb "github.com/jaxcode23/scrapers/pkg/pb"
+	"github.com/jaxcode23/scrapers/internal/utils"
 )
 
-func envDurationSec(key string, fallback time.Duration) time.Duration {
-	if v := os.Getenv(key); v != "" {
-		if n, err := strconv.Atoi(v); err == nil {
-			return time.Duration(n) * time.Second
-		}
-	}
-	return fallback
-}
-
-func envInt(key string, fallback int) int {
-	if v := os.Getenv(key); v != "" {
-		if n, err := strconv.Atoi(v); err == nil {
-			return n
-		}
-	}
-	return fallback
-}
-
 var (
-	dialTimeout    = envDurationSec("DIAL_TIMEOUT_SECONDS", 10*time.Second)
-	sendTimeout    = envDurationSec("SEND_TIMEOUT_SECONDS", 5*time.Second) //nolint:unused
-	maxSendRetries = envInt("MAX_SEND_RETRIES", 3)
+	dialTimeout    = utils.EnvDurationSec("DIAL_TIMEOUT_SECONDS", 10*time.Second)
+	maxSendRetries = utils.EnvInt("MAX_SEND_RETRIES", 3)
 	retryBackoff   = 500 * time.Millisecond
 )
 

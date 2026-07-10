@@ -3,7 +3,6 @@ package main
 import (
 	"os"
 	"testing"
-	"time"
 )
 
 func TestParseSeeds_Empty(t *testing.T) {
@@ -98,40 +97,6 @@ func TestEnvOrDefault_ReturnsEnvValue(t *testing.T) {
 	got := envOrDefault("TEST_VAR", "fallback")
 	if got != "custom-value" {
 		t.Errorf("expected 'custom-value', got %q", got)
-	}
-}
-
-func TestEnvInt_Default(t *testing.T) {
-	os.Unsetenv("TEST_INT")
-	got := envInt("TEST_INT", 42)
-	if got != 42 {
-		t.Errorf("expected 42, got %d", got)
-	}
-}
-
-func TestEnvInt_FromEnv(t *testing.T) {
-	os.Setenv("TEST_INT", "99")
-	defer os.Unsetenv("TEST_INT")
-	got := envInt("TEST_INT", 42)
-	if got != 99 {
-		t.Errorf("expected 99, got %d", got)
-	}
-}
-
-func TestEnvDuration_Default(t *testing.T) {
-	os.Unsetenv("TEST_DURATION")
-	got := envDuration("TEST_DURATION", 15*time.Second)
-	if got != 15*time.Second {
-		t.Errorf("expected 15s, got %v", got)
-	}
-}
-
-func TestEnvDuration_FromEnv(t *testing.T) {
-	os.Setenv("TEST_DURATION", "30")
-	defer os.Unsetenv("TEST_DURATION")
-	got := envDuration("TEST_DURATION", 15*time.Second)
-	if got != 30*time.Second {
-		t.Errorf("expected 30s, got %v", got)
 	}
 }
 

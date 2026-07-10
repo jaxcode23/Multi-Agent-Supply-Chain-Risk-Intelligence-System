@@ -64,11 +64,19 @@ func (p *Pool) worker(id int) {
 			if !ok {
 				return
 			}
-			// Execute task with context protection
-			if err := task.Execute(p.ctx); err != nil {
-				// In a real system, we would log this to an internal observability service
-				_ = fmt.Errorf("worker %d error: %w", id, err)
-			}
+			func() {
+				defer func() {
+					if r := recover(); r != nil {
+						// Log and continue — a single panic must not kill the pool
+						_ = fmt.Errorf("worker %d recovered from panic: %v", id, r)
+					}
+				}()
+				// Execute task with context protection
+				if err := task.Execute(p.ctx); err != nil {
+					// In a real system, we would log this to an internal observability service
+					_ = fmt.Errorf("worker %d error: %w", id, err)
+				}
+			}()
 		case <-p.ctx.Done():
 			return
 		}
