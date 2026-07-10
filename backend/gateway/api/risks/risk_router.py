@@ -1,3 +1,4 @@
+import asyncio
 from fastapi import APIRouter, HTTPException, Body
 from typing import Any
 from core.models import RiskEvent, MitigationResponse
@@ -16,7 +17,7 @@ async def analyze_risk(event: RiskEvent = Body(...)):
     if event.risk_score < 0 or event.risk_score > 100:
         raise HTTPException(status_code=422, detail="risk_score must be between 0 and 100.")
 
-    result = run_orchestrator(event.model_dump())
+    result = await asyncio.to_thread(run_orchestrator, event.model_dump())
 
     return MitigationResponse(
         supplier_name=event.supplier_name,
