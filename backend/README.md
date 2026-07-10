@@ -1,4 +1,4 @@
-# 🐍 FastAPI Backend — AI Reasoning Layer
+# FastAPI Backend — AI Reasoning Layer
 
 **Language:** Python 3.10+ | **Role:** RAG Reasoning, Supplier Graph, REST API
 
@@ -33,19 +33,6 @@ backend/
     │   └── agents/                         # Agent trigger endpoints (async)
     ├── orchestration/
     │   └── mitigation_graph.py             # LangGraph StateGraph — 3-node mitigation pipeline
-    ├── domains/
-    │   ├── analysis/
-    │   │   └── models/                     # Analysis-specific Pydantic schemas
-    │   ├── intelligence/
-    │   │   ├── classifiers.py              # Risk classification by category
-    │   │   ├── processors/                 # Intelligence data processing
-    │   │   └── scrapers/                   # Intelligence source scraping
-    │   └── planning/
-    │       ├── graph/                      # Supply chain graph traversal
-    │       └── optimization/               # Supplier selection optimization
-    ├── services/
-    │   ├── audit_service.py                # Audit log service
-    │   └── app_dependencies.py             # ChromaDB & Neo4j DI
     └── app_config.py                       # Settings via pydantic-settings
 ```
 
@@ -112,11 +99,3 @@ uvicorn main:app --reload --port 8001
 | `gateway/api/dashboard/dashboard_router.py` | ✅ Production |
 | `gateway/api/agents/agent_router.py` | ✅ Production — background task dispatch |
 | `gateway/orchestration/mitigation_graph.py` | ✅ Production — live ChromaDB, Neo4j, and OpenAI calls |
-| `gateway/domains/intelligence/classifiers.py` | ✅ Production |
-| `gateway/domains/intelligence/processors/` | ✅ Production |
-| `gateway/domains/intelligence/scrapers/` | ✅ Production |
-| `gateway/domains/analysis/models/` | ✅ Production |
-| `gateway/domains/planning/graph/` | ✅ Production |
-| `gateway/domains/planning/optimization/` | ✅ Production |
-| `gateway/services/audit_service.py` | ✅ Production |
-| `gateway/app_dependencies.py` | ✅ Production |

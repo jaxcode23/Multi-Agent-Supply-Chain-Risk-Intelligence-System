@@ -1,4 +1,4 @@
-# 🐍 Python Intelligence Agent
+# Python Intelligence Agent
 
 **Language:** Python 3.10+ | **Role:** Ingestion Triage + LLM Analysis Pipeline
 
@@ -10,20 +10,23 @@ Polls NewsAPI for supply chain risk events, scores them with keyword-based triag
 
 ```
 intelligence_agent/
-├── analysis_runner.py                          # Top-level orchestrator: Mongo → LLM → Mongo write-back
+├── pipeline_runner.py                          # Orchestrator: Mongo → LLM → Mongo write-back
 ├── requirements.txt                            # All Python dependencies
 ├── cron/
 │   └── job.py                                  # schedule-based 15-min cron loop
 ├── db/
-│   ├── model/models.py                         # Pydantic v2 IntelDocument + IntelAnalysis schemas
-│   ├── mongo.py                                # MongoDB read (get_escalated_documents) + write-back
-│   └── setup.py                                # One-time index creation (composite, TTL, unique URL)
+│   ├── model/intel_document.py                 # Pydantic v2 IntelDocument + IntelAnalysis schemas
+│   ├── mongo_service.py                        # MongoDB read (get_escalated_documents) + write-back
+│   ├── mongo_setup.py                          # One-time index creation (composite, TTL, unique URL)
+│   └── chroma_client.py                        # ChromaDB HTTP client for RAG chunk upsert
 ├── infrastructure/
-│   └── mongo/base.py                           # MongoClient singleton (TLS, env-driven URI)
+│   └── mongo/mongo_client.py                   # MongoClient singleton (TLS, env-driven URI)
+├── ingestion/
+│   └── news_fetcher.py                         # NewsAPI polling with keyword triage + dedup
 └── intelligence_logic/
-    ├── analyzer.py                             # Two-stage Gemini pipeline (Analysis + Context Prep)
-    ├── planner.py                              # assign_priority() + should_escalate()
-    └── risk_scoring.py                         # Keyword-based risk scorer (0–5 scale)
+    ├── llm_analyzer.py                         # Two-stage Gemini pipeline (Analysis + Context Prep)
+    ├── escalation_planner.py                   # assign_priority() + should_escalate()
+    └── risk_scorer.py                          # Keyword-based risk scorer (0–5 scale)
 ```
 
 ---
@@ -42,7 +45,7 @@ news_fetcher.run_ingestion_cycle()
             │
             │  (escalate_to_analysis == True)
             ▼
-analysis_runner.run_analysis_pipeline()
+pipeline_runner.run_analysis_pipeline()
     ├── Stage 1: run_analysis_agent()       → Gemini → structured JSON
     └── Stage 2: run_context_prep_agent()  → Gemini → RAG text chunks
             │
@@ -52,7 +55,7 @@ analysis_runner.run_analysis_pipeline()
 
 ---
 
-## MongoDB Schema (`db/model/models.py`)
+## MongoDB Schema (`db/model/intel_document.py`)
 
 | Field | Type | Notes |
 |---|---|---|
@@ -71,7 +74,7 @@ analysis_runner.run_analysis_pipeline()
 
 ---
 
-## MongoDB Indexes (`db/setup.py`)
+## MongoDB Indexes (`db/mongo_setup.py`)
 
 | Index | Type | Purpose |
 |---|---|---|
@@ -81,7 +84,7 @@ analysis_runner.run_analysis_pipeline()
 
 ---
 
-## LLM Pipeline (`intelligence_logic/analyzer.py`)
+## LLM Pipeline (`intelligence_logic/llm_analyzer.py`)
 
 - **Model:** `gemini-1.5-flash` with `response_mime_type="application/json"` and `temperature=0.1`
 - **Retry:** `tenacity` — 3 attempts, exponential backoff (2s → 10s)
@@ -105,13 +108,13 @@ analysis_runner.run_analysis_pipeline()
 
 ```bash
 # One-time DB setup
-python -m intelligence_agent.db.setup
+python -m intelligence_agent.db.mongo_setup
 
 # Start the 15-min ingestion cron loop
 python -m intelligence_agent.cron.job
 
 # Run the LLM analysis pipeline manually (idempotent)
-python -m intelligence_agent.analysis_runner
+python -m intelligence_agent.pipeline_runner
 ```
 
 ---
@@ -120,13 +123,14 @@ python -m intelligence_agent.analysis_runner
 
 | File | Status |
 |---|---|
-| `infrastructure/mongo/base.py` | ✅ Production |
-| `db/model/models.py` | ✅ Production |
-| `db/setup.py` | ✅ Production |
-| `db/mongo.py` | ✅ Production |
+| `infrastructure/mongo/mongo_client.py` | ✅ Production |
+| `db/model/intel_document.py` | ✅ Production |
+| `db/mongo_setup.py` | ✅ Production |
+| `db/mongo_service.py` | ✅ Production |
+| `db/chroma_client.py` | ✅ Production |
 | `ingestion/news_fetcher.py` | ✅ Production |
-| `intelligence_logic/risk_scoring.py` | ✅ Production |
-| `intelligence_logic/planner.py` | ✅ Production |
-| `intelligence_logic/analyzer.py` | ✅ Production — **requires real `GEMINI_API_KEY`** |
+| `intelligence_logic/risk_scorer.py` | ✅ Production |
+| `intelligence_logic/escalation_planner.py` | ✅ Production |
+| `intelligence_logic/llm_analyzer.py` | ✅ Production — **requires real `GEMINI_API_KEY`** |
 | `cron/job.py` | ✅ Production |
-| `analysis_runner.py` | ✅ Production |
+| `pipeline_runner.py` | ✅ Production |
