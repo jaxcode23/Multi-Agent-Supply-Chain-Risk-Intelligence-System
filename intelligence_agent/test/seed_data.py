@@ -59,7 +59,7 @@ DUMMY_SCENARIOS = [
 
 def seed_database():
     client = get_mongo_client()
-    db = client["intelligence_db"]
+    db = client[os.getenv("MONGO_DB_NAME", "intelligence_db")]
     collection = db["raw_intel"]
 
     logger.info("🌱 Seeding database with dummy intel...")

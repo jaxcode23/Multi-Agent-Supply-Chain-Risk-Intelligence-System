@@ -1,8 +1,6 @@
 package streams
 
 import zio._
-import zio.stream._
-import config.AppConfig
 
 object RiskIntelPipeline {
 
@@ -20,14 +18,4 @@ object RiskIntelPipeline {
     })
   }
 
-  def processStream(
-    cfg: AppConfig
-  )(rawStream: ZStream[Any, Throwable, (String, Map[String, String])]): ZStream[Any, Throwable, ChunkedDocument] =
-    rawStream.flatMap { case (text, meta) =>
-      val normalized = text.trim.replaceAll("\\s+", " ")
-      val chunks = chunkText(normalized, cfg.chunkSize, cfg.chunkOverlap)
-      ZStream.fromIterable(chunks.zipWithIndex).map { case (chunk, idx) =>
-        ChunkedDocument(chunk, meta, idx)
-      }
-    }
 }

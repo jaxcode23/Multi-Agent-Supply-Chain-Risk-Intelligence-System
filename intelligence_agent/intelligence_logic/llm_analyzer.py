@@ -6,9 +6,6 @@ from google import genai
 from google.genai import types
 from dotenv import load_dotenv
 
-from intelligence_agent.intelligence_logic.risk_scorer import calculate_intel_risk
-from intelligence_agent.intelligence_logic.escalation_planner import should_escalate, assign_priority
-
 load_dotenv()
 logger = logging.getLogger(__name__)
 
@@ -133,16 +130,4 @@ def run_context_prep_agent(analysis_result: dict) -> list[str] | None:
         return None
 
 
-def analyze_intelligence(article: dict) -> dict:
-    """Lightweight ingestion-time keyword triage. Does NOT call the LLM."""
-    title = article.get("title", "")
-    description = article.get("description", "")
-    text = f"{title} {description}"
-    risk_score = calculate_intel_risk(text)
-    return {
-        "source": "newsapi",
-        "title": title,
-        "risk_signal": risk_score,
-        "priority": assign_priority(risk_score),
-        "escalate_to_analysis": should_escalate(risk_score),
-    }
+

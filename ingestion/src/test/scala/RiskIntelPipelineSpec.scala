@@ -46,17 +46,5 @@ object RiskIntelPipelineSpec extends ZIOSpecDefault {
         assertTrue(chunks(1).startsWith("fghij"))
       },
     ),
-    suite("processStream")(
-      test("processes a single document into chunked documents") {
-        val cfg = config.AppConfig(chunkSize = 50, chunkOverlap = 10, batchSize = 10,
-          grpcPort = 9090, chromaHost = "", chromaApiKey = "", chromaTenant = "",
-          chromaDatabase = "", chromaCollection = "")
-        val input = zio.stream.ZStream.succeed(("hello world " * 10, Map("source" -> "test")))
-        val stream = RiskIntelPipeline.processStream(cfg)(input)
-        for {
-          chunks <- stream.runCollect
-        } yield assertTrue(chunks.nonEmpty)
-      },
-    ),
   )
 }
