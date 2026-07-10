@@ -18,6 +18,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langgraph.graph import StateGraph, END
 
 from gateway.app_config import get_settings
+from gateway.services.audit_service import log_orchestrator_run
 
 logger = logging.getLogger(__name__)
 _settings = get_settings()
@@ -170,4 +171,14 @@ def run_orchestrator(risk_event: dict[str, Any]) -> dict[str, Any]:
     }
     final_state = _compiled_graph.invoke(initial_state)
     logger.info(f"Orchestrator complete | plan_length={len(final_state.get('final_plan', ''))} chars")
+
+    log_orchestrator_run(
+        supplier_name=risk_event.get("supplier_name", "unknown"),
+        risk_score=risk_event.get("risk_score", 0),
+        vector_context_length=len(final_state.get("vector_context", "")),
+        graph_context_count=len(final_state.get("graph_context", [])),
+        plan_length=len(final_state.get("final_plan", "")),
+        error=None,
+    )
+
     return final_state

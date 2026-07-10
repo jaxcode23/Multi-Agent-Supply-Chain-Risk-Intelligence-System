@@ -183,6 +183,44 @@ done:
 	}
 }
 
+func TestDroppedResultCounter_IncrementsOnBlock(t *testing.T) {
+	ResetDroppedResultCount()
+	results := make(chan models.ScrapeResult) // unbuffered, no consumer
+	worker := &SectionWorker{
+		Task: models.ScrapeTask{
+			ID:  "task-drop",
+			URL: "https://example.com",
+		},
+		Engine: &mockEngine{content: "data"},
+		Output: results,
+	}
+	before := DroppedResultCount()
+	worker.sendResult(models.ScrapeResult{TaskID: "task-drop"})
+	after := DroppedResultCount()
+	if after-before != 1 {
+		t.Errorf("expected dropped counter to increment by 1, got %d", after-before)
+	}
+}
+
+func TestDroppedResultCounter_DoesNotIncrementOnSuccess(t *testing.T) {
+	ResetDroppedResultCount()
+	results := make(chan models.ScrapeResult, 1)
+	worker := &SectionWorker{
+		Task: models.ScrapeTask{
+			ID:  "task-ok",
+			URL: "https://example.com",
+		},
+		Engine: &mockEngine{content: "data"},
+		Output: results,
+	}
+	before := DroppedResultCount()
+	worker.sendResult(models.ScrapeResult{TaskID: "task-ok"})
+	after := DroppedResultCount()
+	if after-before != 0 {
+		t.Errorf("expected dropped counter unchanged, got %d", after-before)
+	}
+}
+
 func TestStartHopping_WithCancelledContext(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	pool := workerpool.NewPool(ctx, 5)

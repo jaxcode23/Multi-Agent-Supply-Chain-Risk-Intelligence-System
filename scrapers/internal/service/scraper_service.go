@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"fmt"
+	"log/slog"
+	"sync/atomic"
 	"time"
 
 	"github.com/jaxcode23/scrapers/internal/models"
@@ -12,6 +14,20 @@ import (
 // ScraperEngine defines the interface for the actual scraping implementation (e.g. Colly)
 type ScraperEngine interface {
 	Scrape(ctx context.Context, url string, selector string) (string, error)
+}
+
+// droppedResultCounter is a shared counter sharded across one service instance.
+// SectionWorker embeds a pointer so all workers increment the same counter.
+var globalDropped atomic.Int64
+
+// DroppedResultCount returns the total number of results dropped by slow consumers.
+func DroppedResultCount() int64 {
+	return globalDropped.Load()
+}
+
+// ResetDroppedResultCount resets the counter (for tests).
+func ResetDroppedResultCount() {
+	globalDropped.Store(0)
 }
 
 // SectionWorker handles "hopping" between DOM sections
@@ -52,9 +68,8 @@ func (sw *SectionWorker) sendResult(res models.ScrapeResult) {
 	select {
 	case sw.Output <- res:
 	case <-time.After(1 * time.Second):
-		// Prevent blocking if output channel is full
-		fmt.Printf("Warning: Dropping result for task %s due to slow consumer\n", res.TaskID)
-		// TODO: increment a dropped-results counter for observability
+		globalDropped.Add(1)
+		slog.Warn("dropped result due to slow consumer", "task_id", res.TaskID, "url", res.SourceURL)
 	}
 }
 
