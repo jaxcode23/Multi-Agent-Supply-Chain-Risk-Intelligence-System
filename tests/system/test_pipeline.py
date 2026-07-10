@@ -16,6 +16,9 @@ COMPONENTS = [
     ("Go Scrapers", ["go", "test", "./..."], "scrapers"),
     ("Scala Ingestion", ["sbt", "test"], "ingestion"),
     ("Rust Runner", ["cargo", "test"], "runner"),
+    ("Proto Contract", [VENV_PYTHON, "-m", "pytest", "-x", "tests/contract/", "-v"], "."),
+    ("Python Integration", [VENV_PYTHON, "-m", "pytest", "-x", "tests/", "-m", "integration", "-v"], "backend"),
+    ("Docker Smoke", [VENV_PYTHON, "-m", "pytest", "-x", "tests/smoke/", "-v"], "."),
 ]
 
 
