@@ -49,7 +49,7 @@ def _fetch_from_api():
 def run_ingestion_cycle():
     """Main public function called by the Cron Job."""
     client = get_mongo_client()
-    db = client["intelligence_db"]
+    db = client[os.getenv("MONGO_DB_NAME", "intelligence_db")]
     collection = db["raw_intel"]
 
     logger.info("Starting ingestion cycle...")

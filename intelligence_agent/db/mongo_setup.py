@@ -13,8 +13,9 @@ def setup_database_indexes():
     2. Performance Indexes (speed up queries)
     3. TTL Indexes (auto-delete old data)
     """
+    import os
     client = get_mongo_client()
-    db = client["intelligence_db"]
+    db = client[os.getenv("MONGO_DB_NAME", "intelligence_db")]
     collection = db["raw_intel"]
 
     logger.info("🔌 Connected to MongoDB. Applying indexes...")
