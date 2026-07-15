@@ -1,30 +1,44 @@
-﻿import time
+import signal
+import time
 import logging
 import schedule
 
+from intelligence_agent.logging_config import setup_logging
 from intelligence_agent.ingestion.news_fetcher import run_ingestion_cycle
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+setup_logging()
 logger = logging.getLogger("Scheduler")
+
+_shutdown = False
+
+
+def _handle_signal(signum, frame):
+    global _shutdown
+    logger.info("Shutdown signal received - stopping scheduler")
+    _shutdown = True
+
 
 def job():
     try:
         run_ingestion_cycle()
     except Exception as e:
-        logger.error(f"Job crashed: {e}")
+        logger.error("Job crashed: %s", e)
+
 
 if __name__ == "__main__":
+    signal.signal(signal.SIGINT, _handle_signal)
+    signal.signal(signal.SIGTERM, _handle_signal)
+
     logger.info("Scheduler initialized. Running every 15 minutes.")
-    
-    # 1. Run immediately on startup (so you don't wait 15m to see if it works)
+
+    # Run immediately on startup
     job()
-    
-    # 2. Schedule the loop
+
+    # Schedule the loop
     schedule.every(15).minutes.do(job)
 
-    while True:
+    while not _shutdown:
         schedule.run_pending()
         time.sleep(1)
+
+    logger.info("Scheduler stopped")
