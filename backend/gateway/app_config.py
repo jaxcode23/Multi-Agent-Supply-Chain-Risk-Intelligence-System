@@ -17,10 +17,8 @@ class Settings(BaseSettings):
     neo4j_user: str = "neo4j"
     neo4j_password: str
 
-    openai_api_key: str = ""
-    openai_model: str = "gpt-4o-mini"
-
     gemini_api_key: str = ""
+    gemini_model: str = "gemini-2.5-flash"
 
     model_config = SettingsConfigDict(
         env_file=".env",
