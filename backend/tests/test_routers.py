@@ -10,7 +10,7 @@ def _mock_env(monkeypatch):
     monkeypatch.setenv("NEO4J_URI", "bolt://localhost:7687")
     monkeypatch.setenv("NEO4J_USER", "neo4j")
     monkeypatch.setenv("NEO4J_PASSWORD", "password")
-    monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
 
 
 @pytest.fixture(autouse=True)
@@ -25,7 +25,7 @@ def _mock_external_deps():
                     mgc.return_value.get_or_create_collection.return_value = MagicMock()
                     with patch("neo4j.GraphDatabase.driver") as mgd:
                         mgd.return_value.session.return_value.__enter__.return_value = MagicMock()
-                        with patch("gateway.orchestration.mitigation_graph.ChatOpenAI") as llm:
+                        with patch("gateway.orchestration.mitigation_graph.ChatGoogleGenerativeAI") as llm:
                             llm.side_effect = Exception("mock LLM")
                             yield
 
@@ -124,13 +124,15 @@ class TestSupplierRouter:
 
 class TestDashboardRouter:
     def test_summary_returns_counts(self, client):
-        mock_db = MagicMock()
-        mock_db_child = MagicMock()
-        mock_db_child["raw_intel"].count_documents.return_value = 5
-        mock_db_child["raw_intel"].aggregate.return_value = [{"avg": 42.5}]
-        mock_db.__getitem__.return_value = mock_db_child
-
-        with patch("gateway.api.dashboard.dashboard_router.get_mongo_client", return_value=mock_db):
+        from core.models import DashboardSummary
+        mock_summary = DashboardSummary(
+            total_documents=5,
+            escalated_count=1,
+            processed_count=3,
+            high_priority_count=2,
+            risk_score_avg=42.5,
+        )
+        with patch("gateway.api.dashboard.dashboard_router.fetch_summary", return_value=mock_summary):
             resp = client.get("/dashboard/summary")
             assert resp.status_code == 200
             data = resp.json()
@@ -138,14 +140,16 @@ class TestDashboardRouter:
             assert data["risk_score_avg"] == 42.5
 
     def test_recent_returns_list(self, client):
-        mock_db = MagicMock()
-        mock_db_child = MagicMock()
-        mock_db_child["raw_intel"].find.return_value.sort.return_value.limit.return_value = [
-            {"title": "fire", "analysis": {"risk_score": 90, "priority": "high"}, "url": "http://x.com"}
+        mock_recent = [
+            {
+                "title": "fire",
+                "risk_score": 90,
+                "priority": "high",
+                "source_url": "http://x.com",
+                "published_at": "2024-01-01",
+            }
         ]
-        mock_db.__getitem__.return_value = mock_db_child
-
-        with patch("gateway.api.dashboard.dashboard_router.get_mongo_client", return_value=mock_db):
+        with patch("gateway.api.dashboard.dashboard_router.fetch_recent", return_value=mock_recent):
             resp = client.get("/dashboard/recent?limit=5")
             assert resp.status_code == 200
             data = resp.json()

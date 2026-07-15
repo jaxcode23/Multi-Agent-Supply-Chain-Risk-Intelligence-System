@@ -1,5 +1,6 @@
 
 import pytest
+from unittest.mock import MagicMock, patch
 
 
 @pytest.fixture(autouse=True)
@@ -8,7 +9,7 @@ def _mock_env(monkeypatch):
     monkeypatch.setenv("NEO4J_URI", "bolt://localhost:7687")
     monkeypatch.setenv("NEO4J_USER", "neo4j")
     monkeypatch.setenv("NEO4J_PASSWORD", "password")
-    monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
 
 
 @pytest.fixture
@@ -85,7 +86,7 @@ class TestQuerySupplierGraph:
 
 class TestGenerateMitigation:
     def test_returns_fallback_on_llm_failure(self, base_state):
-        with patch("gateway.orchestration.mitigation_graph.ChatOpenAI") as mock_llm:
+        with patch("gateway.orchestration.mitigation_graph.ChatGoogleGenerativeAI") as mock_llm:
             mock_llm.side_effect = Exception("API key missing")
             from gateway.orchestration.mitigation_graph import generate_mitigation
             result = generate_mitigation(base_state)
@@ -93,7 +94,7 @@ class TestGenerateMitigation:
             assert "Tata" in result["final_plan"]
 
     def test_handles_no_alternatives(self, base_state):
-        with patch("gateway.orchestration.mitigation_graph.ChatOpenAI") as mock_llm:
+        with patch("gateway.orchestration.mitigation_graph.ChatGoogleGenerativeAI") as mock_llm:
             mock_llm.side_effect = Exception("API error")
             from gateway.orchestration.mitigation_graph import generate_mitigation
             result = generate_mitigation(base_state)
@@ -134,7 +135,7 @@ class TestAuditService:
         with patch("gateway.orchestration.mitigation_graph.log_orchestrator_run") as mock_audit, \
              patch("gateway.orchestration.mitigation_graph.chromadb.HttpClient") as mock_chroma, \
              patch("core.db.neo4j_client.find_alternative_suppliers_by_name") as mock_neo4j, \
-             patch("gateway.orchestration.mitigation_graph.ChatOpenAI") as mock_llm:
+             patch("gateway.orchestration.mitigation_graph.ChatGoogleGenerativeAI") as mock_llm:
             mock_collection = MagicMock()
             mock_collection.query.return_value = {"documents": [["ctx"]]}
             mock_chroma.return_value.get_or_create_collection.return_value = mock_collection
@@ -154,7 +155,7 @@ class TestRunOrchestrator:
     def test_complete_pipeline_returns_all_fields(self, sample_event):
         with patch("gateway.orchestration.mitigation_graph.chromadb.HttpClient") as mock_chroma, \
              patch("core.db.neo4j_client.find_alternative_suppliers_by_name") as mock_neo4j, \
-             patch("gateway.orchestration.mitigation_graph.ChatOpenAI") as mock_llm:
+             patch("gateway.orchestration.mitigation_graph.ChatGoogleGenerativeAI") as mock_llm:
 
             mock_collection = MagicMock()
             mock_collection.query.return_value = {"documents": [["ctx"]]}
