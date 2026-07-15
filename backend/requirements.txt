@@ -31,6 +31,8 @@ langgraph
 langchain-core
 langchain-google-genai
 
+slowapi
+
 # =========================
 # Testing
 # =========================
