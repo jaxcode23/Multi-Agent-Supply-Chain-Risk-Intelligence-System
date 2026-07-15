@@ -14,14 +14,24 @@ import (
 
 // CollyEngine implements the ScraperEngine interface using Colly
 type CollyEngine struct {
-	UARotator *utils.UserAgentRotator
-	Limiter   *utils.DomainLimiter
+	UARotator     *utils.UserAgentRotator
+	Limiter       *utils.DomainLimiter
+	requestsPerSec float64
+	burstSize     int
 }
 
-func NewCollyEngine(ua *utils.UserAgentRotator, lim *utils.DomainLimiter) *CollyEngine {
+func NewCollyEngine(ua *utils.UserAgentRotator, lim *utils.DomainLimiter, rps float64, burst int) *CollyEngine {
+	if rps <= 0 {
+		rps = 1.0
+	}
+	if burst <= 0 {
+		burst = 5
+	}
 	return &CollyEngine{
-		UARotator: ua,
-		Limiter:   lim,
+		UARotator:     ua,
+		Limiter:       lim,
+		requestsPerSec: rps,
+		burstSize:     burst,
 	}
 }
 
@@ -29,7 +39,7 @@ func NewCollyEngine(ua *utils.UserAgentRotator, lim *utils.DomainLimiter) *Colly
 func (ce *CollyEngine) Scrape(ctx context.Context, url string, selector string) (string, error) {
 	// 1. Wait for rate limiter
 	domain := ce.extractDomain(url)
-	if err := ce.Limiter.Wait(ctx, domain, 1.0, 5); err != nil {
+	if err := ce.Limiter.Wait(ctx, domain, ce.requestsPerSec, ce.burstSize); err != nil {
 		return "", fmt.Errorf("rate limit wait failed: %w", err)
 	}
 

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -43,6 +44,9 @@ var (
 	workerConcurrency = utils.EnvInt("WORKER_CONCURRENCY", 5)
 	payloadBufferSize = utils.EnvInt("PAYLOAD_BUFFER_SIZE", 200)
 	shutdownGrace     = utils.EnvDurationSec("SHUTDOWN_GRACE_SECONDS", 15*time.Second)
+	maxWorkers        = utils.EnvInt("MAX_WORKERS", 0) // 0 = use WORKER_CONCURRENCY
+	requestsPerSecond = utils.EnvFloat64("REQUESTS_PER_SECOND", 1.0)
+	burstSize         = utils.EnvInt("BURST_SIZE", 5)
 	scrapeSeeds       = parseSeeds(envOrDefault("SCRAPE_SEEDS", ""))
 )
 
@@ -72,14 +76,40 @@ func parseSeeds(raw string) []seedDef {
 	return seeds
 }
 
+func validateConfig(logger *slog.Logger) {
+	if err := utils.ValidateRequired("SCALA_HUB_ADDR"); err != nil {
+		logger.Error("startup validation failed", "err", err)
+		os.Exit(1)
+	}
+	for _, k := range []string{"WORKER_CONCURRENCY", "PAYLOAD_BUFFER_SIZE", "BURST_SIZE"} {
+		if err := utils.ValidatePositiveInt(k); err != nil {
+			logger.Error("startup validation failed", "err", err)
+			os.Exit(1)
+		}
+	}
+	if err := utils.ValidatePositiveFloat("REQUESTS_PER_SECOND"); err != nil {
+		logger.Error("startup validation failed", "err", err)
+		os.Exit(1)
+	}
+}
+
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	slog.SetDefault(logger)
 
+	validateConfig(logger)
+
+	effectiveConcurrency := workerConcurrency
+	if maxWorkers > 0 {
+		effectiveConcurrency = maxWorkers
+	}
+
 	logger.Info("Supply Chain Scraper Gateway starting",
 		"scala_hub", scalaHubAddr,
 		"http_addr", httpAddr,
-		"worker_concurrency", workerConcurrency,
+		"worker_concurrency", effectiveConcurrency,
+		"requests_per_second", requestsPerSecond,
+		"burst_size", burstSize,
 	)
 
 	rootCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -87,9 +117,9 @@ func main() {
 
 	uaRotator := utils.NewUserAgentRotator()
 	domainLimiter := utils.NewDomainLimiter()
-	engine := service.NewCollyEngine(uaRotator, domainLimiter)
+	engine := service.NewCollyEngine(uaRotator, domainLimiter, requestsPerSecond, burstSize)
 
-	pool := workerpool.NewPool(rootCtx, workerConcurrency)
+	pool := workerpool.NewPool(rootCtx, effectiveConcurrency)
 	pool.Start()
 
 	scraperSvc := service.NewScraperService(engine, pool)
@@ -155,7 +185,7 @@ func main() {
 		scraperSvc.StartHopping(rootCtx, seed.URL, seed.Selectors)
 	}
 
-	logger.Info("Go Gateway ready", "http", httpAddr, "grpc_target", scalaHubAddr, "seeds", len(scrapeSeeds))
+	logger.Info(fmt.Sprintf("Go Gateway ready — http=%s grpc=%s seeds=%d", httpAddr, scalaHubAddr, len(scrapeSeeds)))
 	<-rootCtx.Done()
 	logger.Info("shutdown signal received", "grace_seconds", shutdownGrace.Seconds())
 
