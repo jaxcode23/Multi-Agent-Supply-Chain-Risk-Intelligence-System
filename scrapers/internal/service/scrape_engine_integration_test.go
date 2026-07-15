@@ -16,7 +16,7 @@ func TestCollyEngine_Scrape_ExtractsHTML(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	ce := NewCollyEngine(utils.NewUserAgentRotator(), utils.NewDomainLimiter())
+	ce := NewCollyEngine(utils.NewUserAgentRotator(), utils.NewDomainLimiter(), 1.0, 5)
 	content, err := ce.Scrape(context.Background(), ts.URL, "h1")
 	if err != nil {
 		t.Fatalf("Scrape failed: %v", err)
@@ -36,7 +36,7 @@ func TestCollyEngine_Scrape_MultipleSelectors(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	ce := NewCollyEngine(utils.NewUserAgentRotator(), utils.NewDomainLimiter())
+	ce := NewCollyEngine(utils.NewUserAgentRotator(), utils.NewDomainLimiter(), 1.0, 5)
 
 	tests := []struct {
 		selector string
@@ -63,7 +63,7 @@ func TestCollyEngine_Scrape_RespectsContextCancellation(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	ce := NewCollyEngine(utils.NewUserAgentRotator(), utils.NewDomainLimiter())
+	ce := NewCollyEngine(utils.NewUserAgentRotator(), utils.NewDomainLimiter(), 1.0, 5)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
@@ -74,7 +74,7 @@ func TestCollyEngine_Scrape_RespectsContextCancellation(t *testing.T) {
 }
 
 func TestCollyEngine_Scrape_ReturnsErrorOnBadURL(t *testing.T) {
-	ce := NewCollyEngine(utils.NewUserAgentRotator(), utils.NewDomainLimiter())
+	ce := NewCollyEngine(utils.NewUserAgentRotator(), utils.NewDomainLimiter(), 1.0, 5)
 	_, err := ce.Scrape(context.Background(), "http://127.0.0.1:1", "h1")
 	if err == nil {
 		t.Fatal("expected error for unreachable URL, got nil")
@@ -87,7 +87,7 @@ func TestCollyEngine_Scrape_EmptySelectorReturnsNothing(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	ce := NewCollyEngine(utils.NewUserAgentRotator(), utils.NewDomainLimiter())
+	ce := NewCollyEngine(utils.NewUserAgentRotator(), utils.NewDomainLimiter(), 1.0, 5)
 	content, err := ce.Scrape(context.Background(), ts.URL, "nonexistent")
 	if err != nil {
 		t.Fatalf("Scrape failed: %v", err)
