@@ -8,7 +8,7 @@ os.environ.setdefault("NEO4J_URI", "bolt://localhost:7687")
 os.environ.setdefault("NEO4J_USER", "neo4j")
 os.environ.setdefault("NEO4J_PASSWORD", "password")
 os.environ.setdefault("CHROMA_API_KEY", "test-key")
-os.environ.setdefault("OPENAI_API_KEY", "sk-test")
+os.environ.setdefault("GEMINI_API_KEY", "test-key")
 os.environ.setdefault("NEO4J_URI", "bolt://localhost:7687")
 
 

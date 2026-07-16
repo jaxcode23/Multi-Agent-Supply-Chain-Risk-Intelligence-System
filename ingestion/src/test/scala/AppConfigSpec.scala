@@ -17,6 +17,7 @@ object AppConfigSpec extends ZIOSpecDefault {
     test("can be constructed manually") {
       val cfg = AppConfig(
         grpcPort = 9090,
+        httpPort = 9091,
         chromaHost = "api.trychroma.com",
         chromaApiKey = "",
         chromaTenant = "",
@@ -26,11 +27,11 @@ object AppConfigSpec extends ZIOSpecDefault {
         chunkOverlap = 200,
         batchSize = 10,
       )
-      assertTrue(cfg.grpcPort == 9090 && cfg.chunkSize == 1000)
+      assertTrue(cfg.grpcPort == 9090 && cfg.chunkSize == 1000 && cfg.httpPort == 9091)
     },
     test("default values are sensible") {
       val cfg = AppConfig(
-        grpcPort = 9090, chromaHost = "", chromaApiKey = "",
+        grpcPort = 9090, httpPort = 9091, chromaHost = "", chromaApiKey = "",
         chromaTenant = "", chromaDatabase = "", chromaCollection = "",
         chunkSize = 1000, chunkOverlap = 200, batchSize = 10,
       )

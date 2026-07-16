@@ -11,7 +11,7 @@ def _mock_env(monkeypatch):
     monkeypatch.setenv("NEO4J_USER", "neo4j")
     monkeypatch.setenv("NEO4J_PASSWORD", "password")
     monkeypatch.setenv("CHROMA_API_KEY", "test-key")
-    monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
 
 
 @pytest.fixture
@@ -42,8 +42,7 @@ class TestRoutersIntegration:
         assert resp.status_code == 422
 
     def test_analyze_risk_full_pipeline(self, client):
-        with patch("gateway.orchestration.mitigation_graph.run_orchestrator") as mock_run, \
-             patch("gateway.services.audit_service.log_orchestrator_run") as mock_audit:
+        with patch("gateway.api.risks.risk_router.run_orchestrator") as mock_run:
             mock_run.return_value = {
                 "risk_event": {"supplier_name": "Tata", "headline": "test", "risk_score": 85},
                 "vector_context": "historical context",
@@ -61,22 +60,29 @@ class TestRoutersIntegration:
             assert data["final_plan"] == "Mitigation plan"
 
     def test_supplier_endpoint(self, client):
-        with patch("gateway.api.suppliers.supplier_router.find_alternative_suppliers_by_name") as mock_find:
-            mock_find.return_value = ["Alt1 (Asia)", "Alt2 (EU)"]
+        with patch("gateway.api.suppliers.supplier_router.get_supplier_by_name") as mock_get, \
+             patch("gateway.api.suppliers.supplier_router.find_alternative_suppliers") as mock_find:
+            mock_get.return_value = {"id": "S001", "name": "Tata", "region": "Asia"}
+            mock_find.return_value = [
+                {"id": "S002", "name": "Alt1", "region": "Asia"},
+                {"id": "S003", "name": "Alt2", "region": "EU"},
+            ]
             resp = client.get("/suppliers/Tata/alternatives")
             assert resp.status_code == 200
             data = resp.json()
-            assert len(data) == 2
+            assert len(data["alternatives"]) == 2
 
     def test_dashboard_summary(self, client):
-        with patch("core.db.dashboard_queries._fetch_summary") as mock_summary:
-            mock_summary.return_value = {
-                "total_risks": 42,
-                "high_risk": 5,
-                "medium_risk": 12,
-                "low_risk": 25,
-            }
+        from core.models import DashboardSummary
+        mock_summary = DashboardSummary(
+            total_documents=42,
+            escalated_count=5,
+            processed_count=30,
+            high_priority_count=10,
+            risk_score_avg=65.0,
+        )
+        with patch("gateway.api.dashboard.dashboard_router.fetch_summary", return_value=mock_summary):
             resp = client.get("/dashboard/summary")
             assert resp.status_code == 200
             data = resp.json()
-            assert data["total_risks"] == 42
+            assert data["total_documents"] == 42

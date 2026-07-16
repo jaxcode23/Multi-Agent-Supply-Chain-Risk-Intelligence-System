@@ -3,7 +3,7 @@ LangGraph mitigation pipeline — 3-node linear graph.
 
   retrieve_rag_context → query_supplier_graph → generate_mitigation → END
 
-All nodes use live cloud services (ChromaDB cloud, Neo4j Aura, OpenAI).
+All nodes use live cloud services (ChromaDB cloud, Neo4j Aura, Google Gemini).
 Credentials come exclusively from environment variables via gateway.config.Settings.
 """
 
@@ -13,7 +13,7 @@ import logging
 from typing import TypedDict, Any
 
 import chromadb
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from langgraph.graph import StateGraph, END
 
@@ -81,7 +81,7 @@ def query_supplier_graph(state: AgentState) -> dict[str, Any]:
     return {"graph_context": alternatives}
 
 
-# ── Node 3: OpenAI GPT mitigation synthesis ───────────────────────────────────
+# ── Node 3: Google Gemini mitigation synthesis ────────────────────────────────
 
 _MITIGATION_PROMPT = ChatPromptTemplate.from_template("""
 You are a senior supply chain risk analyst. Based on the information below, generate a
@@ -106,18 +106,18 @@ Output a mitigation plan with these sections:
 
 
 def generate_mitigation(state: AgentState) -> dict[str, Any]:
-    """Call OpenAI GPT to synthesise RAG context and graph alternatives into a mitigation plan."""
+    """Call Google Gemini to synthesise RAG context and graph alternatives into a mitigation plan."""
     risk_event = state["risk_event"]
     alternatives = state["graph_context"]
     alternatives_str = ", ".join(alternatives) if alternatives else "None identified"
 
-    logger.info(f"[Node 3] Generating mitigation plan via {_settings.openai_model}.")
+    logger.info(f"[Node 3] Generating mitigation plan via {_settings.gemini_model}.")
 
     try:
-        llm = ChatOpenAI(
-            model=_settings.openai_model,
+        llm = ChatGoogleGenerativeAI(
+            model=_settings.gemini_model,
             temperature=0.2,
-            api_key=_settings.openai_api_key,
+            google_api_key=_settings.gemini_api_key,
         )
         chain = _MITIGATION_PROMPT | llm
         response = chain.invoke({

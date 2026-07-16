@@ -27,7 +27,7 @@ func TestExtractDomain(t *testing.T) {
 
 func TestNewCollyEngine(t *testing.T) {
 	// Can be created with nil dependencies (they get initialized later)
-	ce := NewCollyEngine(nil, nil)
+	ce := NewCollyEngine(nil, nil, 1.0, 5)
 	if ce == nil {
 		t.Fatal("expected non-nil CollyEngine")
 	}

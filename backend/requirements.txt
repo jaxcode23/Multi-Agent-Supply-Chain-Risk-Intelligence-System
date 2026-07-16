@@ -23,14 +23,15 @@ python-dotenv
 # AI / ML
 # =========================
 chromadb
-openai
 
 # =========================
 # LangGraph Pipeline
 # =========================
 langgraph
 langchain-core
-langchain-openai
+langchain-google-genai
+
+slowapi
 
 # =========================
 # Testing

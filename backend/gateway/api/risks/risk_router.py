@@ -1,19 +1,15 @@
 import asyncio
-from fastapi import APIRouter, HTTPException, Body
-from typing import Any
+from fastapi import APIRouter, HTTPException, Request, Body
 from core.models import RiskEvent, MitigationResponse
 from gateway.orchestration.mitigation_graph import run_orchestrator
+from gateway.rate_limit import limiter
 
 router = APIRouter(prefix="/risks", tags=["Risks"])
 
 
 @router.post("/analyze", response_model=MitigationResponse)
-async def analyze_risk(event: RiskEvent = Body(...)):
-    """
-    Trigger the LangGraph mitigation pipeline for a risk event.
-    Queries ChromaDB for historical context, Neo4j for alternative suppliers,
-    then synthesises a mitigation plan via GPT.
-    """
+@limiter.limit("30/minute")
+async def analyze_risk(request: Request, event: RiskEvent = Body(...)):
     if event.risk_score < 0 or event.risk_score > 100:
         raise HTTPException(status_code=422, detail="risk_score must be between 0 and 100.")
 

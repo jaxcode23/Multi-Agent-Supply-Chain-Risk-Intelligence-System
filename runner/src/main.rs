@@ -3,8 +3,12 @@ use std::collections::HashMap;
 use std::env;
 use std::fs;
 use std::process::{Child, Command, Stdio};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
+
+use tracing::{error, info, warn};
 
 // 1. Define the structure of our TOML config
 #[derive(Debug, Deserialize)]
@@ -82,7 +86,7 @@ fn resolve_command_windows(command: &str) -> Option<String> {
 
 // 2. The Spawner Function
 fn spawn_service(name: &str, config: &ServiceConfig) -> Option<Child> {
-    println!("🚀 Starting [{}] from {}", name, config.path);
+    info!(service = %name, path = %config.path, "Starting service");
 
     // Dynamically resolve the real executable path at runtime.
     // On Windows, use `where.exe` to find the full path (handles PATH gaps,
@@ -118,8 +122,7 @@ fn spawn_service(name: &str, config: &ServiceConfig) -> Option<Child> {
     {
         Ok(child) => Some(child),
         Err(e) => {
-            eprintln!("❌ Failed to start [{}]: {}", name, e);
-            eprintln!("   Command: {} {:?}", final_command, final_args);
+            error!(service = %name, error = %e, command = %final_command, args = ?final_args, "Failed to start service");
             None
         }
     }
@@ -127,7 +130,12 @@ fn spawn_service(name: &str, config: &ServiceConfig) -> Option<Child> {
 
 
 fn main() {
-    println!("🦀 Runner: Initializing Workspace...\n");
+    tracing_subscriber::fmt()
+        .json()
+        .with_max_level(tracing::Level::INFO)
+        .init();
+
+    info!("Runner: Initializing Workspace");
 
     let current_dir = env::current_dir().expect("Failed to get current directory");
     let mut config_path = current_dir.join("runner.toml");
@@ -141,7 +149,7 @@ fn main() {
                 config_path = parent_config;
                 // Change the working directory so relative paths in TOML (like ./backend) resolve correctly against the root folder
                 if let Err(e) = env::set_current_dir(parent) {
-                    eprintln!("❌ Failed to change working directory to parent: {}", e);
+                    error!(error = %e, "Failed to change working directory to parent");
                     return;
                 }
             }
@@ -152,8 +160,7 @@ fn main() {
     let config_contents = match fs::read_to_string(&config_path) {
         Ok(contents) => contents,
         Err(_) => {
-            eprintln!("❌ Could not find runner.toml in the current directory.");
-            eprintln!("Please create it to define your services.");
+            error!("Could not find runner.toml in the current directory. Please create it to define your services.");
             return;
         }
     };
@@ -161,7 +168,7 @@ fn main() {
     let config: Config = match toml::from_str(&config_contents) {
         Ok(c) => c,
         Err(e) => {
-            eprintln!("❌ Failed to parse runner.toml: {}", e);
+            error!(error = %e, "Failed to parse runner.toml");
             return;
         }
     };
@@ -176,16 +183,48 @@ fn main() {
     }
 
     if running_processes.is_empty() {
-        println!("⚠️ No services were successfully started.");
+        warn!("No services were successfully started");
         return;
     }
 
-    println!("\n✅ All configured services spawned. Press Ctrl+C to terminate.");
+    info!(
+        count = running_processes.len(),
+        "All configured services spawned. Press Ctrl+C to terminate."
+    );
 
-    // Keep the main thread alive so the child processes stay open
-    loop {
+    // 5. Set up graceful shutdown via Ctrl+C
+    let shutdown = Arc::new(AtomicBool::new(false));
+    let s = shutdown.clone();
+    ctrlc::set_handler(move || {
+        s.store(true, Ordering::SeqCst);
+    })
+    .expect("Error setting Ctrl+C handler");
+
+    // Wait for shutdown signal
+    while !shutdown.load(Ordering::SeqCst) {
         thread::sleep(Duration::from_secs(1));
     }
+
+    info!("Shutdown signal received — terminating child processes");
+
+    let force_timeout = Duration::from_secs(10);
+    let start = std::time::Instant::now();
+
+    for child in running_processes.iter_mut() {
+        let _ = child.kill();
+    }
+
+    // Wait for children to exit with timeout
+    for child in running_processes.iter_mut() {
+        let remaining = force_timeout.saturating_sub(start.elapsed());
+        if remaining.is_zero() {
+            warn!("Force timeout exceeded — some processes may not have exited cleanly");
+            break;
+        }
+        let _ = child.wait();
+    }
+
+    info!("Runner shutdown complete");
 }
 
 #[cfg(test)]
