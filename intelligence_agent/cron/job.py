@@ -4,6 +4,7 @@ import logging
 import schedule
 
 from intelligence_agent.logging_config import setup_logging
+from intelligence_agent.health_server import start_health_server
 from intelligence_agent.ingestion.news_fetcher import run_ingestion_cycle
 
 setup_logging()
@@ -29,6 +30,8 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, _handle_signal)
     signal.signal(signal.SIGTERM, _handle_signal)
 
+    health_server = start_health_server()
+
     logger.info("Scheduler initialized. Running every 15 minutes.")
 
     # Run immediately on startup
@@ -41,4 +44,5 @@ if __name__ == "__main__":
         schedule.run_pending()
         time.sleep(1)
 
+    health_server.shutdown()
     logger.info("Scheduler stopped")
