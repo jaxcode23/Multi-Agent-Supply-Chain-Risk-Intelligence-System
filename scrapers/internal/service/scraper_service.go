@@ -106,7 +106,7 @@ func (ss *ScraperService) StartHopping(ctx context.Context, url string, selector
 		}
 
 		if err := ss.Pool.Submit(worker); err != nil {
-			fmt.Printf("Failed to submit task for selector %s: %v\n", sel, err)
+			slog.Error("failed to submit task", "selector", sel, "error", err)
 		}
 	}
 }

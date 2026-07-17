@@ -12,6 +12,7 @@ import (
 // DomainLimiter manages rate limits on a per-domain basis to avoid detection
 type DomainLimiter struct {
 	limiters sync.Map // map[string]*rate.Limiter
+	mu       sync.Mutex
 	r        *rand.Rand
 }
 
@@ -24,9 +25,11 @@ func NewDomainLimiter() *DomainLimiter {
 // Wait blocks until the rate limiter allows a request for the given domain
 func (dl *DomainLimiter) Wait(ctx context.Context, domain string, rps float64, burst int) error {
 	limiter, _ := dl.limiters.LoadOrStore(domain, rate.NewLimiter(rate.Limit(rps), burst))
-	
+
 	// Add randomized jitter to appear more human
+	dl.mu.Lock()
 	jitter := time.Duration(dl.r.Int63n(int64(500 * time.Millisecond)))
+	dl.mu.Unlock()
 	select {
 	case <-time.After(jitter):
 	case <-ctx.Done():
@@ -39,6 +42,7 @@ func (dl *DomainLimiter) Wait(ctx context.Context, domain string, rps float64, b
 // UserAgentRotator provides randomized browser identity
 type UserAgentRotator struct {
 	userAgents []string
+	mu         sync.Mutex
 	r          *rand.Rand
 }
 
@@ -55,5 +59,7 @@ func NewUserAgentRotator() *UserAgentRotator {
 }
 
 func (uar *UserAgentRotator) GetRandom() string {
+	uar.mu.Lock()
+	defer uar.mu.Unlock()
 	return uar.userAgents[uar.r.Intn(len(uar.userAgents))]
 }
