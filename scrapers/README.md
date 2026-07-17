@@ -1,4 +1,4 @@
-# 🔵 Go Scraping Gateway
+# Go Scraping Gateway
 
 **Language:** Go 1.26 | **Role:** Ingestion Layer
 
@@ -13,18 +13,27 @@ scrapers/
 ├── cmd/api/main.go                     # Entrypoint — signal handling, pool init, gRPC wiring
 ├── internal/
 │   ├── api/http_server.go              # HTTP server with /health and /ready endpoints
+│   ├── api/http_server_test.go         # 4 tests (health, ready, timeouts, routes)
 │   ├── models/task.go                  # ScrapeTask and ScrapeResult data types
 │   ├── service/
 │   │   ├── scrape_engine.go            # Colly-based HTTP scraping engine
+│   │   ├── scrape_engine_test.go       # 2 tests (domain extraction, construction)
 │   │   ├── scraper_service.go          # SectionWorker + ScraperService orchestrator
-│   │   └── grpc_client.go             # gRPC client — Connect, StartStream, retry logic
+│   │   ├── scraper_service_test.go     # 6 tests (worker execute, result channel, StartHopping)
+│   │   ├── grpc_client.go             # gRPC client — Connect, StartStream, retry logic
+│   │   └── grpc_client_test.go        # 6 tests (construction, IsReady, connect timeout, env vars)
 │   └── utils/
-│       └── rate_limiter.go             # Per-domain rate limiter + User-Agent rotator
+│       ├── rate_limiter.go             # Per-domain rate limiter + User-Agent rotator
+│       ├── rate_limiter_test.go        # 7 tests (wait, cancellation, isolation, jitter, UA)
+│       └── env.go                      # Env var helpers + validation (EnvInt, EnvDurationSec, etc.)
 ├── pkg/
 │   ├── pb/                             # Generated protobuf + gRPC stubs
 │   └── workerpool/
-│       ├── pool.go                     # Generic goroutine pool (Submit, Stop, WaitGroup)
-│       └── pool_test.go                # Unit tests for pool concurrency
+│       ├── pool.go                     # Generic goroutine pool (Submit, Stop, WaitGroup, panic recovery)
+│       └── pool_test.go                # 3 tests (multi-task, cancellation, error handling)
+├── Dockerfile                          # Multi-stage build (golang:1.26 → distroless)
+├── go.mod
+└── go.sum
 ```
 
 ---
@@ -51,11 +60,56 @@ scrapers/
 
 ---
 
+## Environment Helpers (`internal/utils/env.go`)
+
+Shared utilities for reading and validating environment variables:
+
+| Function | Description |
+|---|---|
+| `EnvInt(key, fallback)` | Parse int env var with fallback |
+| `EnvFloat64(key, fallback)` | Parse float64 env var with fallback |
+| `EnvDurationSec(key, fallback)` | Parse int seconds as `time.Duration` |
+| `ValidateRequired(keys...)` | Error if any named env vars are empty |
+| `ValidatePositiveInt(key)` | Error if set but not a positive integer |
+| `ValidatePositiveFloat(key)` | Error if set but not a positive float |
+
+---
+
 ## Configuration
 
 | Env Var | Default | Description |
 |---|---|---|
 | `SCALA_HUB_ADDR` | `localhost:9090` | gRPC address of the Scala Processing Hub |
+| `HTTP_ADDR` | `:8080` | Health server listen address |
+| `WORKER_CONCURRENCY` | `4` | Number of concurrent scraping workers |
+| `PAYLOAD_BUFFER_SIZE` | `100` | Channel buffer size for payloads |
+| `SHUTDOWN_GRACE_SECONDS` | `10` | Grace period for shutdown |
+| `SCRAPE_SEEDS` | (empty) | Semicolon-delimited `url,selector` tuples |
+| `DIAL_TIMEOUT_SECONDS` | `10` | gRPC dial timeout |
+| `SEND_TIMEOUT_SECONDS` | `5` | gRPC send timeout per payload |
+| `MAX_SEND_RETRIES` | `3` | Max retries for failed gRPC sends |
+
+---
+
+## Health
+
+- `GET /health` — Always returns 200 (process alive)
+- `GET /ready` — Returns 200 if gRPC connection is Ready, 503 otherwise
+
+---
+
+## Building & Running
+
+```bash
+# Local
+go run ./cmd/api
+
+# Docker
+docker build -t supply-chain-scrapers .
+
+# Docker Compose (from repo root)
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up scrapers
+```
 
 ---
 
@@ -63,12 +117,13 @@ scrapers/
 
 | File | Status |
 |---|---|
-| `cmd/api/main.go` | ✅ Production — seeds configurable via `SCRAPE_SEEDS` env var |
-| `internal/api/http_server.go` | ✅ Production — `/health` and `/ready` endpoints |
+| `cmd/api/main.go` | ✅ Production |
+| `internal/api/http_server.go` | ✅ Production |
 | `internal/service/grpc_client.go` | ✅ Production |
 | `internal/service/scrape_engine.go` | ✅ Production |
 | `internal/service/scraper_service.go` | ✅ Production |
 | `internal/utils/rate_limiter.go` | ✅ Production |
+| `internal/utils/env.go` | ✅ Production |
 | `pkg/workerpool/pool.go` | ✅ Production |
 
 ---
