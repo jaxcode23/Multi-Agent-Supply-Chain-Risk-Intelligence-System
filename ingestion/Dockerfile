@@ -6,15 +6,21 @@ COPY build.sbt .
 RUN sbt update
 
 COPY src/ src/
-COPY src/main/protobuf/ src/main/protobuf/
-RUN sbt compile
+COPY proto/ /proto/
+RUN sbt assembly
 
 FROM eclipse-temurin:17-jre
 
+RUN groupadd -r app && useradd -r -g app app
+
 WORKDIR /app
-COPY --from=build /app/target/ /app/target/
-COPY --from=build /app/src/main/resources/ /app/resources/
+COPY --from=build /app/target/scala-2.13/riskintel-ingestion-assembly-*.jar /app/app.jar
+
+USER app
 
 EXPOSE 9090
 
-ENTRYPOINT ["java", "-cp", "/app/target/scala-2.13/classes:/app/target/scala-2.13/src_managed/main/scalapb:/app/resources", "Main"]
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+  CMD java -jar /app/app.jar --help > /dev/null 2>&1 || exit 1
+
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]
