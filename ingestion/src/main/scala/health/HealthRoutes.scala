@@ -22,20 +22,20 @@ object HealthRoutes {
       .get(URL.decode(url).getOrElse(URL.empty))
       .addHeader("X-Chroma-Token", cfg.chromaApiKey)
 
-    ZIO.serviceWithZIO[Client] { client =>
-      client.request(request).flatMap { resp =>
+    ZIO.scoped {
+      Client.request(request).flatMap { resp =>
         if (resp.status.isSuccess) ZIO.succeed("chroma" -> "ok")
         else ZIO.succeed("chroma" -> s"unavailable: HTTP ${resp.status.code}")
       }.catchAll(e => ZIO.succeed("chroma" -> s"unavailable: ${e.getMessage}"))
     }
   }
 
-  val app: Http[AppConfig with Client, Nothing, Request, Response] =
-    Http.collect[Request] {
-      case Method.GET -> Root / "health" =>
+  val app: Routes[AppConfig with Client, Nothing] =
+    Routes(
+      Method.GET / "health" -> handler { (_: Request) =>
         healthResponse
-
-      case Method.GET -> Root / "ready" =>
+      },
+      Method.GET / "ready" -> handler { (_: Request) =>
         for {
           cfg      <- ZIO.service[AppConfig]
           chromaDep <- checkChroma(cfg)
@@ -50,5 +50,6 @@ object HealthRoutes {
             "dependencies" -> Map(chromaDep).toJson,
           ).toJson
         } yield Response.json(body).copy(status = code)
-    }
+      }
+    )
 }
