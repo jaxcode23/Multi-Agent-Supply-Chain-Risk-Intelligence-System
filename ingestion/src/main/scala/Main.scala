@@ -16,7 +16,7 @@ object Main extends ZIOAppDefault {
   override val bootstrap: ZLayer[Any, Nothing, Unit] =
     Runtime.removeDefaultLoggers >>> SLF4J.slf4j
 
-  override def run: ZIO[Any, Throwable, Nothing] = {
+  override def run = {
     val cfg = AppConfig.load()
 
     val grpcServerLayer: ZLayer[IngestionService, Throwable, scalapb.zio_grpc.Server] =
@@ -27,26 +27,29 @@ object Main extends ZIOAppDefault {
         } yield env.get[scalapb.zio_grpc.Server]
       }
 
-    val httpClientLayer = Client.default
+    val httpApp = HealthRoutes.app.toHttpApp
 
-    val healthApp = HealthRoutes.app.provideSome[Client](ZLayer.succeed(cfg))
-
-    val httpServerLayer = Server.serve(healthApp).provide(
-      Server.defaultWithPort(cfg.httpPort),
+    (for {
+      grpcFiber <- ZIO.scoped {
+                     grpcServerLayer.build.flatMap(env =>
+                       env.get[scalapb.zio_grpc.Server].awaitTermination
+                     )
+                   }.forkDaemon
+      httpFiber <- Server.serve(httpApp)
+                     .provide(
+                       Server.defaultWithPort(cfg.httpPort),
+                       ZLayer.succeed(cfg),
+                       Client.default,
+                     )
+                     .forkDaemon
+      _         <- ZIO.logInfo(s"Scala Ingestion Hub started — gRPC :${cfg.grpcPort}, HTTP :${cfg.httpPort}")
+      _         <- grpcFiber.join.zipPar(httpFiber.join)
+    } yield ())
+    .provide(
+      Client.default,
+      ZLayer.succeed(cfg),
+      ChromaDBClient.auto,
+      IngestionService.layer,
     )
-
-    val fullGrpcLayer: ZLayer[Any, Throwable, scalapb.zio_grpc.Server] =
-      ZLayer.make[scalapb.zio_grpc.Server](
-        httpClientLayer,
-        ZLayer.succeed(cfg),
-        ChromaDBClient.auto,
-        IngestionService.layer,
-        grpcServerLayer
-      )
-
-    (fullGrpcLayer.zipPar(httpServerLayer)).forkDaemon.flatMap { fiber =>
-      ZIO.logInfo(s"Scala Ingestion Hub started — gRPC :${cfg.grpcPort}, HTTP :${cfg.httpPort}") *>
-      fiber.join
-    }
   }
 }
