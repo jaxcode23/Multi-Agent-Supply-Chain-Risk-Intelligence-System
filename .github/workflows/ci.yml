@@ -47,8 +47,7 @@ jobs:
       - name: Install Backend Deps
         run: pip install -r requirements.txt
       - name: Run Backend Tests
-        run: |
-          if [ -d "tests" ]; then pytest tests; else echo "No backend tests found."; fi
+        run: python -m pytest -v
 
   # ---------------------------------------------------------------------------
   # Intelligence Agent (Python)
@@ -63,7 +62,7 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
       - name: Install Intelligence Agent Deps
-        run: pip install -r intelligence_agent/requirements.txt
+        run: pip install -r intelligence_agent/requirements.txt pytest
       - name: Install Root Project
         run: pip install -e .
       - name: Run Intelligence Agent Tests
