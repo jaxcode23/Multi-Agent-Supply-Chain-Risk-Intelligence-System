@@ -4,15 +4,25 @@ import config.AppConfig
 object AppConfigSpec extends ZIOSpecDefault {
 
   def spec = suite("AppConfig")(
-    test("loads from environment variables") {
-      // Set env vars before calling load
-      TestSystem.putProperty("GRPC_PORT", "9091")
-      TestSystem.putProperty("CHUNK_SIZE", "500")
-      TestSystem.putProperty("CHROMA_HOST", "localhost")
-      val cfg = AppConfig.load()
-      // AppConfig.load uses sys.env which isn't affected by TestSystem
-      // Instead we verify the object can be constructed properly
-      assertTrue(true)
+    test("AppConfig case class fields are assignable and accessible") {
+      val cfg = AppConfig(
+        grpcPort = 9091,
+        httpPort = 9092,
+        chromaHost = "localhost",
+        chromaApiKey = "test-key",
+        chromaTenant = "test-tenant",
+        chromaDatabase = "test-db",
+        chromaCollection = "test-collection",
+        chunkSize = 500,
+        chunkOverlap = 100,
+        batchSize = 5,
+      )
+      assertTrue(
+        cfg.grpcPort == 9091,
+        cfg.chromaHost == "localhost",
+        cfg.chunkSize == 500,
+        cfg.batchSize == 5,
+      )
     },
     test("can be constructed manually") {
       val cfg = AppConfig(

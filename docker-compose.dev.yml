@@ -1,0 +1,181 @@
+version: "3.9"
+
+# =============================================================================
+#  Application Services — Development Stack
+#
+#  Usage (with database stack):
+#    docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+#
+#  Usage (databases only):
+#    docker compose up -d
+#
+#  Usage (full stack):
+#    docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+# =============================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # Go Scraping Gateway
+  # ---------------------------------------------------------------------------
+  scrapers:
+    build:
+      context: ./scrapers
+      dockerfile: Dockerfile
+    container_name: supply_chain_scrapers
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      SCALA_HUB_ADDR: "ingestion:9090"
+      HTTP_ADDR: "0.0.0.0:8080"
+      WORKER_CONCURRENCY: "4"
+      PAYLOAD_BUFFER_SIZE: "100"
+      SHUTDOWN_GRACE_SECONDS: "10"
+      SCRAPE_SEEDS: "https://example.com,article"
+      DIAL_TIMEOUT_SECONDS: "10"
+      SEND_TIMEOUT_SECONDS: "5"
+      MAX_SEND_RETRIES: "3"
+    networks:
+      - supply-chain-net
+    depends_on:
+      ingestion:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # ---------------------------------------------------------------------------
+  # Scala Processing Hub
+  # ---------------------------------------------------------------------------
+  ingestion:
+    build:
+      context: .
+      dockerfile: ingestion/Dockerfile
+    container_name: supply_chain_ingestion
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    environment:
+      GRPC_PORT: "9090"
+      CHROMA_HOST: "chromadb"
+      CHROMA_API_KEY: ""
+      CHROMA_TENANT: ""
+      CHROMA_DATABASE: "supply-chain-db"
+      CHROMA_COLLECTION: "supply_chain_intel"
+      CHUNK_SIZE: "1000"
+      CHUNK_OVERLAP: "200"
+      BATCH_SIZE: "10"
+    networks:
+      - supply-chain-net
+    depends_on:
+      chromadb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "java -jar /app/app.jar --help || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # ---------------------------------------------------------------------------
+  # Python Backend (API)
+  # ---------------------------------------------------------------------------
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: supply_chain_backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      MONGO_URI: "mongodb://admin:supplychain1234@mongodb:27017/?authSource=admin"
+      MONGO_DB_NAME: "intelligence_db"
+      NEO4J_URI: "bolt://neo4j:7687"
+      NEO4J_USER: "neo4j"
+      NEO4J_PASSWORD: "neo4j1234"
+      CHROMA_HOST: "chromadb"
+      CHROMA_API_KEY: ""
+      CHROMA_TENANT: ""
+      CHROMA_DATABASE: "supply-chain-db"
+      GEMINI_API_KEY: ""
+    networks:
+      - supply-chain-net
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+      chromadb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # ---------------------------------------------------------------------------
+  # Intelligence Agent
+  # ---------------------------------------------------------------------------
+  intelligence-agent:
+    build:
+      context: .
+      dockerfile: intelligence_agent/Dockerfile
+    container_name: supply_chain_intelligence
+    restart: unless-stopped
+    ports:
+      - "9100:9100"
+    environment:
+      MONGO_URI: "mongodb://admin:supplychain1234@mongodb:27017/?authSource=admin"
+      MONGO_DB_NAME: "intelligence_db"
+      NEWS_API_KEY: ""
+      GEMINI_API_KEY: ""
+    networks:
+      - supply-chain-net
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9100/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # ---------------------------------------------------------------------------
+  # TypeScript Frontend
+  # ---------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: supply_chain_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: "http://localhost:8000"
+    networks:
+      - supply-chain-net
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000', (r) => { process.exit(r.statusCode === 200 ? 0 : 1) })"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+# =============================================================================
+# Networks — Reuses the bridge from the database stack
+# =============================================================================
+networks:
+  supply-chain-net:
+    driver: bridge
+    name: supply-chain-net

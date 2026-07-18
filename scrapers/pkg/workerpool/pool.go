@@ -3,6 +3,7 @@ package workerpool
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"sync"
 )
 
@@ -67,14 +68,11 @@ func (p *Pool) worker(id int) {
 			func() {
 				defer func() {
 					if r := recover(); r != nil {
-						// Log and continue — a single panic must not kill the pool
-						_ = fmt.Errorf("worker %d recovered from panic: %v", id, r)
+						slog.Error("worker recovered from panic", "worker_id", id, "panic", r)
 					}
 				}()
-				// Execute task with context protection
 				if err := task.Execute(p.ctx); err != nil {
-					// In a real system, we would log this to an internal observability service
-					_ = fmt.Errorf("worker %d error: %w", id, err)
+					slog.Error("task execution failed", "worker_id", id, "error", err)
 				}
 			}()
 		case <-p.ctx.Done():

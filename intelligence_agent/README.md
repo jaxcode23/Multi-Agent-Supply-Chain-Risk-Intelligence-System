@@ -1,6 +1,6 @@
 # Python Intelligence Agent
 
-**Language:** Python 3.10+ | **Role:** Ingestion Triage + LLM Analysis Pipeline
+**Language:** Python 3.11 | **Role:** Ingestion Triage + LLM Analysis Pipeline
 
 Polls NewsAPI for supply chain risk events, scores them with keyword-based triage, stores high-signal articles in MongoDB, and runs a two-stage Gemini LLM pipeline over escalated documents to produce structured analysis and RAG-ready chunks.
 
@@ -11,9 +11,12 @@ Polls NewsAPI for supply chain risk events, scores them with keyword-based triag
 ```
 intelligence_agent/
 ├── pipeline_runner.py                          # Orchestrator: Mongo → LLM → Mongo write-back
+├── health_server.py                            # HTTP /health and /ready endpoints (threaded)
+├── logging_config.py                           # Structured JSON logging setup
 ├── requirements.txt                            # All Python dependencies
+├── Dockerfile                                  # Container image (non-root, healthcheck)
 ├── cron/
-│   └── job.py                                  # schedule-based 15-min cron loop
+│   └── job.py                                  # schedule-based 15-min cron loop + health server
 ├── db/
 │   ├── model/intel_document.py                 # Pydantic v2 IntelDocument + IntelAnalysis schemas
 │   ├── mongo_service.py                        # MongoDB read (get_escalated_documents) + write-back
@@ -23,10 +26,14 @@ intelligence_agent/
 │   └── mongo/mongo_client.py                   # MongoClient singleton (TLS, env-driven URI)
 ├── ingestion/
 │   └── news_fetcher.py                         # NewsAPI polling with keyword triage + dedup
-└── intelligence_logic/
-    ├── llm_analyzer.py                         # Two-stage Gemini pipeline (Analysis + Context Prep)
-    ├── escalation_planner.py                   # assign_priority() + should_escalate()
-    └── risk_scorer.py                          # Keyword-based risk scorer (0–5 scale)
+├── intelligence_logic/
+│   ├── llm_analyzer.py                         # Two-stage Gemini pipeline (Analysis + Context Prep)
+│   ├── escalation_planner.py                   # assign_priority() + should_escalate()
+│   └── risk_scorer.py                          # Keyword-based risk scorer (0–100 scale)
+└── test/
+    ├── test_health_server.py                   # Pytest tests for health server
+    ├── mongo.py                                # Manual connectivity test
+    └── seed_data.py                            # Test data seeder
 ```
 
 ---
@@ -55,6 +62,19 @@ pipeline_runner.run_analysis_pipeline()
 
 ---
 
+## Health Server (`health_server.py`)
+
+Threaded HTTP server providing liveness and readiness checks:
+
+| Endpoint | Description |
+|---|---|
+| `GET /health` | Returns `{"status": "ok", "service": "intelligence_agent", "version": "1.0.0"}` |
+| `GET /ready` | Checks MongoDB, NEWS_API_KEY, GEMINI_API_KEY. Returns 200 if all OK, 503 otherwise |
+
+Started automatically by `cron/job.py` on the main thread.
+
+---
+
 ## MongoDB Schema (`db/model/intel_document.py`)
 
 | Field | Type | Notes |
@@ -65,9 +85,9 @@ pipeline_runner.run_analysis_pipeline()
 | `raw_text` | `str` | `"{title} {description}"` — this is the LLM input field |
 | `published_at` | `datetime` | Parsed from NewsAPI ISO string |
 | `ingested_at` | `datetime` | Set at insertion time |
-| `analysis.risk_score` | `int` | 0–5 keyword score |
+| `analysis.risk_score` | `int` | 0–100 keyword score |
 | `analysis.priority` | `str` | `low / medium / high` |
-| `analysis.escalate_to_analysis` | `bool` | `True` when `risk_score >= 3` |
+| `analysis.escalate_to_analysis` | `bool` | `True` when `risk_score >= 30` |
 | `llm_analysis` | `dict` | Written by Stage 1 after LLM run |
 | `rag_chunks` | `list[str]` | Written by Stage 2 after LLM run |
 | `llm_processed` | `bool` | Set `True` to prevent re-processing |
@@ -110,11 +130,20 @@ pipeline_runner.run_analysis_pipeline()
 # One-time DB setup
 python -m intelligence_agent.db.mongo_setup
 
-# Start the 15-min ingestion cron loop
+# Start the 15-min ingestion cron loop (includes health server on port 9100)
 python -m intelligence_agent.cron.job
 
 # Run the LLM analysis pipeline manually (idempotent)
 python -m intelligence_agent.pipeline_runner
+
+# Run tests
+pytest intelligence_agent/test/test_health_server.py -v
+
+# Docker
+docker build -f intelligence_agent/Dockerfile -t supply-chain-intelligence .
+
+# Docker Compose (from repo root)
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up intelligence-agent
 ```
 
 ---
@@ -132,5 +161,7 @@ python -m intelligence_agent.pipeline_runner
 | `intelligence_logic/risk_scorer.py` | ✅ Production |
 | `intelligence_logic/escalation_planner.py` | ✅ Production |
 | `intelligence_logic/llm_analyzer.py` | ✅ Production — **requires real `GEMINI_API_KEY`** |
-| `cron/job.py` | ✅ Production |
+| `cron/job.py` | ✅ Production — starts health server + scheduler |
 | `pipeline_runner.py` | ✅ Production |
+| `health_server.py` | ✅ Production — /health and /ready endpoints |
+| `logging_config.py` | ✅ Production — structured JSON logging |

@@ -33,6 +33,9 @@ jobs:
   # ---------------------------------------------------------------------------
   backend-ci:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
     steps:
       - uses: actions/checkout@v4
       - name: Setup Python
@@ -40,14 +43,30 @@ jobs:
         with:
           python-version: '3.11'
           cache: 'pip'
-      - name: Install Core Backend Deps
-        run: pip install -r backend/requirements.txt
-      - name: Install Intelligence Agent Deps
-        run: pip install -r intelligence_agent/requirements.txt
+          cache-dependency-path: './backend/requirements.txt'
+      - name: Install Backend Deps
+        run: pip install -r requirements.txt
       - name: Run Backend Tests
-        run: |
-          # Fallback check if pytest isn't configured yet
-          if [ -d "backend/tests" ]; then pytest backend/tests; else echo "No backend tests found."; fi
+        run: python -m pytest -v
+
+  # ---------------------------------------------------------------------------
+  # Intelligence Agent (Python)
+  # ---------------------------------------------------------------------------
+  intelligence-agent-ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - name: Install Intelligence Agent Deps
+        run: pip install -r intelligence_agent/requirements.txt pytest
+      - name: Install Root Project
+        run: pip install -e .
+      - name: Run Intelligence Agent Tests
+        run: pytest intelligence_agent/test/test_health_server.py -v
 
   # ---------------------------------------------------------------------------
   # Scrapers (Go)
