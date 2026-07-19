@@ -3,9 +3,7 @@
 # Python cache
 __pycache__/
 *.pyc
-.env
 .metals
 
-docs/*
 runner/cs/
 *.exe
