@@ -1,4 +1,4 @@
-FROM sbtscala/scala-sbt:graalvm-community-17.0.2_1.10.7_2.13.18 AS build
+FROM sbtscala/scala-sbt:eclipse-temurin-17.0.15_6_1.11.7_2.13.18 AS build
 
 WORKDIR /app
 COPY ingestion/project/ project/
