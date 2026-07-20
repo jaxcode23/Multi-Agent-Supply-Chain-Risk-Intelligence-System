@@ -7,9 +7,8 @@ RUN groupadd -r app && useradd -r -g app app
 
 WORKDIR /app
 
-COPY pyproject.toml .
 COPY intelligence_agent/ intelligence_agent/
-RUN pip install --no-cache-dir --no-compile .
+RUN pip install --no-cache-dir --no-compile -r intelligence_agent/requirements.txt
 
 RUN chown -R app:app /app
 USER app
