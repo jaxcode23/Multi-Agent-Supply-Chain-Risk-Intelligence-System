@@ -56,3 +56,15 @@ Compile / PB.targets := Seq(
   scalapb.gen(grpc = true) -> (Compile / sourceManaged).value / "scalapb",
   ZioCodeGenerator -> (Compile / sourceManaged).value / "scalapb"
 )
+
+assembly / assemblyMergeStrategy := {
+  case PathList("module-info.class") =>
+    MergeStrategy.discard
+  case PathList("META-INF", "versions", _*) =>
+    MergeStrategy.discard
+  case PathList("META-INF", "io.netty.versions.properties") =>
+    MergeStrategy.first
+  case x =>
+    val old = (assembly / assemblyMergeStrategy).value
+    old(x)
+}
